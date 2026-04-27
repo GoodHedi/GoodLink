@@ -81,8 +81,12 @@ export default async function PublicProfilePage({
   if (!data) notFound()
 
   return (
-    <main className="min-h-svh">
-      <PublicProfile profile={data.profile} links={data.links} />
+    <main className="flex min-h-svh flex-col">
+      <PublicProfile
+        profile={data.profile}
+        links={data.links}
+        className="flex-1"
+      />
     </main>
   )
 }

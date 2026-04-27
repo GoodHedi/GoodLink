@@ -2,7 +2,6 @@
 
 import { useActionState } from "react"
 import { useFormStatus } from "react-dom"
-import { CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FormField } from "@/components/ui/form-field"
 import { signupAction, type SignupActionState } from "../actions"
@@ -15,20 +14,6 @@ type SignupFormProps = {
 
 export function SignupForm({ defaultUsername = "" }: SignupFormProps) {
   const [state, action] = useActionState(signupAction, initialState)
-
-  if (state.needsConfirmation) {
-    return (
-      <div className="rounded-xl border border-accent/30 bg-accent/10 p-5 text-center space-y-2 animate-fade-in">
-        <CheckCircle2 className="mx-auto h-8 w-8 text-accent" />
-        <h3 className="font-semibold text-forest">Compte créé !</h3>
-        <p className="text-sm text-muted-foreground">
-          On vient de t&apos;envoyer un email à{" "}
-          <strong className="text-forest">{state.email}</strong> pour confirmer
-          ton inscription. Clique sur le lien et ton GoodLink sera prêt.
-        </p>
-      </div>
-    )
-  }
 
   return (
     <form action={action} className="space-y-4" noValidate>
