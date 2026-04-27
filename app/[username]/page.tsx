@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
 import { PublicProfile } from "@/components/public-profile"
-import { getProfileByUsername } from "@/lib/profile"
+import { getPageByUsername } from "@/lib/page"
 
 type Params = Promise<{ username: string }>
 
@@ -16,7 +16,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { username: rawUsername } = await params
   const username = rawUsername.toLowerCase()
-  const data = await getProfileByUsername(username)
+  const data = await getPageByUsername(username)
 
   if (!data) {
     return {
@@ -25,14 +25,14 @@ export async function generateMetadata({
     }
   }
 
-  const { profile } = data
-  const displayName = profile.display_name || `@${profile.username}`
+  const { page } = data
+  const displayName = page.display_name || `@${page.username}`
   const description =
-    profile.bio?.trim() ||
+    page.bio?.trim() ||
     `Découvre les liens de ${displayName} sur GoodLink.`
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
-  const url = `${siteUrl}/${profile.username}`
+  const url = `${siteUrl}/${page.username}`
 
   return {
     title: displayName,
@@ -44,10 +44,10 @@ export async function generateMetadata({
       url,
       type: "profile",
       locale: "fr_FR",
-      images: profile.avatar_url
+      images: page.avatar_url
         ? [
             {
-              url: profile.avatar_url,
+              url: page.avatar_url,
               width: 400,
               height: 400,
               alt: displayName
@@ -56,10 +56,10 @@ export async function generateMetadata({
         : undefined
     },
     twitter: {
-      card: profile.avatar_url ? "summary" : "summary_large_image",
+      card: page.avatar_url ? "summary" : "summary_large_image",
       title: `${displayName} · GoodLink`,
       description,
-      images: profile.avatar_url ? [profile.avatar_url] : undefined
+      images: page.avatar_url ? [page.avatar_url] : undefined
     }
   }
 }
@@ -77,13 +77,13 @@ export default async function PublicProfilePage({
     redirect(`/${username}`)
   }
 
-  const data = await getProfileByUsername(username)
+  const data = await getPageByUsername(username)
   if (!data) notFound()
 
   return (
     <main className="flex min-h-svh flex-col">
       <PublicProfile
-        profile={data.profile}
+        profile={data.page}
         links={data.links}
         className="flex-1"
       />

@@ -12,38 +12,39 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { AvatarUpload } from "./avatar-upload"
 import { BIO_MAX, DISPLAY_NAME_MAX } from "@/lib/constants"
-import type { Profile } from "@/types/database"
+import type { Page } from "@/types/database"
 
 type Props = {
-  profile: Profile
-  onChange: (patch: Partial<Profile>) => void
+  page: Page
+  onChange: (patch: Partial<Page>) => void
   onAvatarChange: (url: string | null) => Promise<void>
 }
 
-export function ProfileSection({ profile, onChange, onAvatarChange }: Props) {
-  const bioLength = (profile.bio ?? "").length
+export function ProfileSection({ page, onChange, onAvatarChange }: Props) {
+  const bioLength = (page.bio ?? "").length
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Profil</CardTitle>
+        <CardTitle>Identité</CardTitle>
         <CardDescription>
-          Ce que les visiteurs verront en haut de ta page.
+          Ce que les visiteurs verront en haut de cette page.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <AvatarUpload
-          profileId={profile.id}
-          avatarUrl={profile.avatar_url}
-          displayName={profile.display_name}
-          username={profile.username}
+          ownerId={page.owner_id}
+          pageId={page.id}
+          avatarUrl={page.avatar_url}
+          displayName={page.display_name}
+          username={page.username}
           onChange={onAvatarChange}
         />
 
         <FormField
           label="Nom affiché"
           name="display_name"
-          value={profile.display_name}
+          value={page.display_name}
           onChange={(e) => onChange({ display_name: e.target.value })}
           maxLength={DISPLAY_NAME_MAX}
           placeholder="Pierre Dupont"
@@ -59,10 +60,10 @@ export function ProfileSection({ profile, onChange, onAvatarChange }: Props) {
           <Textarea
             id="bio"
             name="bio"
-            value={profile.bio ?? ""}
+            value={page.bio ?? ""}
             onChange={(e) => onChange({ bio: e.target.value })}
             maxLength={BIO_MAX}
-            placeholder="Quelques mots sur toi…"
+            placeholder="Quelques mots sur cette page…"
             rows={3}
           />
         </div>

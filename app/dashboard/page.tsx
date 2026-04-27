@@ -1,9 +1,10 @@
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { DashboardEditor } from "./_components/dashboard-editor"
+import { PagesGrid } from "./_components/pages-grid"
+import { PAGE_LIMIT_FREE } from "@/lib/constants"
 
-export const metadata: Metadata = { title: "Dashboard" }
+export const metadata: Metadata = { title: "Mes pages" }
 export const dynamic = "force-dynamic"
 
 export default async function DashboardPage() {
@@ -13,18 +14,28 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  const [{ data: profile }, { data: links }] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", user.id).single(),
-    supabase
-      .from("links")
-      .select("*")
-      .eq("profile_id", user.id)
-      .order("position", { ascending: true })
-  ])
+  const { data: pages } = await supabase
+    .from("pages")
+    .select("*")
+    .eq("owner_id", user.id)
+    .order("created_at", { ascending: true })
 
-  // Le layout gère le cas profile manquant. Si on arrive ici sans profile,
-  // c'est qu'il a déjà été géré, on renvoie un signe d'arrêt.
-  if (!profile) return null
+  const list = pages ?? []
 
-  return <DashboardEditor profile={profile} links={links ?? []} />
+  return (
+    <div className="container py-8 lg:py-12">
+      <div className="mb-8 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-forest sm:text-3xl">
+            Tes pages GoodLink
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {list.length} / {PAGE_LIMIT_FREE} pages utilisées
+          </p>
+        </div>
+      </div>
+
+      <PagesGrid pages={list} />
+    </div>
+  )
 }

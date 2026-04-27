@@ -42,3 +42,20 @@ export const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{6})$/
 
 export const DEFAULT_BACKGROUND_COLOR = "#F3EFE9"
 export const DEFAULT_BACKGROUND_OVERLAY = 0.3
+
+// Quotas plan free (à passer en colonne `plan` sur auth.users plus tard si besoin)
+export const PAGE_LIMIT_FREE = 20
+export const QR_LIMIT_FREE = 50
+
+// Plateformes sociales supportées (pour LinkType = 'social', vague 2)
+export const SOCIAL_PLATFORMS = [
+  "instagram",
+  "tiktok",
+  "twitter",
+  "youtube",
+  "github",
+  "linkedin",
+  "facebook",
+  "spotify"
+] as const
+export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number]

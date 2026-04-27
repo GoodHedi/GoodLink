@@ -39,11 +39,12 @@ import type {
 } from "@/lib/validations/links"
 
 type Props = {
+  pageId: string
   links: LinkRow[]
   onLinksChange: (links: LinkRow[]) => void
 }
 
-export function LinksSection({ links, onLinksChange }: Props) {
+export function LinksSection({ pageId, links, onLinksChange }: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, {
@@ -65,7 +66,7 @@ export function LinksSection({ links, onLinksChange }: Props) {
     onLinksChange(next)
 
     startTransition(async () => {
-      const result = await reorderLinksAction(next.map((l) => l.id))
+      const result = await reorderLinksAction(pageId, next.map((l) => l.id))
       if (!result.ok) {
         toast.error(result.error)
         onLinksChange(previous)
@@ -74,7 +75,7 @@ export function LinksSection({ links, onLinksChange }: Props) {
   }
 
   async function handleAdd(input: CreateLinkInput): Promise<boolean> {
-    const result = await createLinkAction(input)
+    const result = await createLinkAction(pageId, input)
     if (!result.ok) {
       toast.error(result.error)
       return false
@@ -91,7 +92,7 @@ export function LinksSection({ links, onLinksChange }: Props) {
         l.id === input.id ? { ...l, title: input.title, url: input.url } : l
       )
     )
-    const result = await updateLinkAction(input)
+    const result = await updateLinkAction(pageId, input)
     if (!result.ok) {
       toast.error(result.error)
       onLinksChange(previous)
@@ -101,7 +102,7 @@ export function LinksSection({ links, onLinksChange }: Props) {
   async function handleDelete(id: string) {
     const previous = links
     onLinksChange(links.filter((l) => l.id !== id))
-    const result = await deleteLinkAction(id)
+    const result = await deleteLinkAction(pageId, id)
     if (!result.ok) {
       toast.error(result.error)
       onLinksChange(previous)

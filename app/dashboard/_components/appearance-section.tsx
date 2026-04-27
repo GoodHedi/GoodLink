@@ -10,11 +10,11 @@ import {
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { BackgroundUpload } from "./background-upload"
-import type { Profile } from "@/types/database"
+import type { Page } from "@/types/database"
 
 type Props = {
-  profile: Profile
-  onChange: (patch: Partial<Profile>) => void
+  page: Page
+  onChange: (patch: Partial<Page>) => void
   onBackgroundChange: (url: string | null) => Promise<void>
 }
 
@@ -30,11 +30,11 @@ const SUGGESTED_COLORS = [
 ]
 
 export function AppearanceSection({
-  profile,
+  page,
   onChange,
   onBackgroundChange
 }: Props) {
-  const hasBackground = Boolean(profile.background_url)
+  const hasBackground = Boolean(page.background_url)
 
   function handleHexInput(value: string) {
     if (!/^#?[0-9a-fA-F]{0,6}$/.test(value)) return
@@ -48,13 +48,14 @@ export function AppearanceSection({
       <CardHeader>
         <CardTitle>Apparence</CardTitle>
         <CardDescription>
-          Couleur unie ou image personnalisée pour ta page.
+          Couleur unie ou image personnalisée pour cette page.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <BackgroundUpload
-          profileId={profile.id}
-          backgroundUrl={profile.background_url}
+          ownerId={page.owner_id}
+          pageId={page.id}
+          backgroundUrl={page.background_url}
           onChange={onBackgroundChange}
         />
 
@@ -65,7 +66,7 @@ export function AppearanceSection({
               <input
                 id="bg-color"
                 type="color"
-                value={profile.background_color}
+                value={page.background_color}
                 onChange={(e) =>
                   onChange({ background_color: e.target.value })
                 }
@@ -74,7 +75,7 @@ export function AppearanceSection({
               />
               <input
                 type="text"
-                value={profile.background_color}
+                value={page.background_color}
                 onChange={(e) => handleHexInput(e.target.value)}
                 className="h-11 flex-1 rounded-xl border border-input bg-background px-4 font-mono text-sm uppercase focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
                 maxLength={7}
@@ -101,11 +102,11 @@ export function AppearanceSection({
             <div className="flex items-center justify-between">
               <Label>Voile sombre</Label>
               <span className="text-xs tabular-nums text-muted-foreground">
-                {Math.round(profile.background_overlay * 100)}%
+                {Math.round(page.background_overlay * 100)}%
               </span>
             </div>
             <Slider
-              value={[profile.background_overlay]}
+              value={[page.background_overlay]}
               onValueChange={([v]) =>
                 onChange({ background_overlay: v ?? 0 })
               }

@@ -4,8 +4,9 @@ import {
   DISPLAY_NAME_MAX,
   HEX_COLOR_REGEX
 } from "@/lib/constants"
+import { usernameSchema } from "@/lib/validations/auth"
 
-export const profileUpdateSchema = z.object({
+export const pageUpdateSchema = z.object({
   display_name: z
     .string({ required_error: "Le nom affiché est requis." })
     .trim()
@@ -28,4 +29,20 @@ export const profileUpdateSchema = z.object({
     .max(1, "L'opacité doit être inférieure ou égale à 1.")
 })
 
-export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>
+export type PageUpdateInput = z.infer<typeof pageUpdateSchema>
+
+export const createPageSchema = z.object({
+  username: usernameSchema,
+  display_name: z
+    .string()
+    .trim()
+    .max(DISPLAY_NAME_MAX, `Au maximum ${DISPLAY_NAME_MAX} caractères.`)
+    .optional()
+})
+
+export type CreatePageInput = z.infer<typeof createPageSchema>
+
+export const togglePagePublishedSchema = z.object({
+  id: z.string().uuid("Identifiant invalide."),
+  is_published: z.boolean()
+})

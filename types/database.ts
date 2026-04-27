@@ -1,5 +1,6 @@
 /**
- * Types TypeScript reflétant le schéma Supabase défini dans supabase/schema.sql.
+ * Types TypeScript reflétant le schéma Supabase v2 défini dans
+ * supabase/schema.sql.
  * Aligné avec le format produit par `supabase gen types typescript`
  * (postgrest-js ≥ 1.20 : présence de `__InternalSupabase` et `Relationships`).
  */
@@ -12,15 +13,18 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type LinkType = "link" | "header" | "social"
+
 export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12"
   }
   public: {
     Tables: {
-      profiles: {
+      pages: {
         Row: {
           id: string
+          owner_id: string
           username: string
           display_name: string
           bio: string | null
@@ -28,11 +32,13 @@ export type Database = {
           background_url: string | null
           background_color: string
           background_overlay: number
+          is_published: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
-          id: string
+          id?: string
+          owner_id: string
           username: string
           display_name?: string
           bio?: string | null
@@ -40,6 +46,7 @@ export type Database = {
           background_url?: string | null
           background_color?: string
           background_overlay?: number
+          is_published?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -51,38 +58,136 @@ export type Database = {
           background_url?: string | null
           background_color?: string
           background_overlay?: number
+          is_published?: boolean
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pages_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       links: {
         Row: {
           id: string
-          profile_id: string
+          page_id: string
+          type: LinkType
           title: string
           url: string
+          platform: string | null
           position: number
           created_at: string
         }
         Insert: {
           id?: string
-          profile_id: string
+          page_id: string
+          type?: LinkType
           title: string
-          url: string
+          url?: string
+          platform?: string | null
           position?: number
           created_at?: string
         }
         Update: {
+          type?: LinkType
           title?: string
           url?: string
+          platform?: string | null
           position?: number
         }
         Relationships: [
           {
-            foreignKeyName: "links_profile_id_fkey"
-            columns: ["profile_id"]
+            foreignKeyName: "links_page_id_fkey"
+            columns: ["page_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      page_views: {
+        Row: {
+          id: number
+          page_id: string
+          viewed_at: string
+        }
+        Insert: {
+          id?: number
+          page_id: string
+          viewed_at?: string
+        }
+        Update: {
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_views_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      link_clicks: {
+        Row: {
+          id: number
+          link_id: string
+          clicked_at: string
+        }
+        Insert: {
+          id?: number
+          link_id: string
+          clicked_at?: string
+        }
+        Update: {
+          clicked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "link_clicks_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "links"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      qr_codes: {
+        Row: {
+          id: string
+          owner_id: string
+          label: string
+          target_url: string
+          fg_color: string
+          bg_color: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          owner_id: string
+          label: string
+          target_url: string
+          fg_color?: string
+          bg_color?: string
+          created_at?: string
+        }
+        Update: {
+          label?: string
+          target_url?: string
+          fg_color?: string
+          bg_color?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_codes_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           }
         ]
@@ -96,8 +201,12 @@ export type Database = {
 }
 
 // Raccourcis pratiques
-export type Profile = Database["public"]["Tables"]["profiles"]["Row"]
-export type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"]
+export type Page = Database["public"]["Tables"]["pages"]["Row"]
+export type PageInsert = Database["public"]["Tables"]["pages"]["Insert"]
+export type PageUpdate = Database["public"]["Tables"]["pages"]["Update"]
 export type Link = Database["public"]["Tables"]["links"]["Row"]
 export type LinkInsert = Database["public"]["Tables"]["links"]["Insert"]
 export type LinkUpdate = Database["public"]["Tables"]["links"]["Update"]
+export type QrCode = Database["public"]["Tables"]["qr_codes"]["Row"]
+export type QrCodeInsert = Database["public"]["Tables"]["qr_codes"]["Insert"]
+export type QrCodeUpdate = Database["public"]["Tables"]["qr_codes"]["Update"]

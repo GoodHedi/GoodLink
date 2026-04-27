@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
-import { profileUpdateSchema } from "@/lib/validations/profile"
+import {
+  pageUpdateSchema,
+  createPageSchema,
+  togglePagePublishedSchema,
+  type CreatePageInput,
+  type PageUpdateInput
+} from "@/lib/validations/page"
 import {
   createLinkSchema,
   deleteLinkSchema,
@@ -12,7 +18,8 @@ import {
   type UpdateLinkInput
 } from "@/lib/validations/links"
 import { fieldErrors } from "@/lib/form"
-import type { Link, ProfileUpdate } from "@/types/database"
+import { PAGE_LIMIT_FREE, RESERVED_USERNAMES } from "@/lib/constants"
+import type { Link, Page, PageUpdate } from "@/types/database"
 
 // ---------- Envelope de retour standardisée ----------
 
@@ -36,16 +43,18 @@ async function getOwner() {
   return { supabase, userId: user.id }
 }
 
-async function getUsername(
+async function ownsPage(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string
-) {
+  userId: string,
+  pageId: string
+): Promise<{ ok: true; username: string } | { ok: false }> {
   const { data } = await supabase
-    .from("profiles")
-    .select("username")
-    .eq("id", userId)
+    .from("pages")
+    .select("owner_id, username")
+    .eq("id", pageId)
     .maybeSingle()
-  return data?.username ?? null
+  if (!data || data.owner_id !== userId) return { ok: false }
+  return { ok: true, username: data.username }
 }
 
 function isAllowedStorageUrl(url: string): boolean {
@@ -62,16 +71,16 @@ function isAllowedStorageUrl(url: string): boolean {
 }
 
 // =====================================================================
-// PROFILE
+// PAGES
 // =====================================================================
 
-export async function updateProfileAction(
-  input: unknown
-): Promise<ActionResult> {
+export async function createPageAction(
+  input: CreatePageInput
+): Promise<ActionResult<Page>> {
   const owner = await getOwner()
-  if (!owner) return UNAUTHENTICATED as ActionResult
+  if (!owner) return UNAUTHENTICATED as ActionResult<Page>
 
-  const parsed = profileUpdateSchema.safeParse(input)
+  const parsed = createPageSchema.safeParse(input)
   if (!parsed.success) {
     return {
       ok: false,
@@ -80,7 +89,143 @@ export async function updateProfileAction(
     }
   }
 
-  const update: ProfileUpdate = {
+  const { username, display_name } = parsed.data
+
+  if (RESERVED_USERNAMES.has(username)) {
+    return {
+      ok: false,
+      error: "Ce pseudo est réservé.",
+      fieldErrors: { username: "Ce pseudo est réservé." }
+    }
+  }
+
+  // Quota : max PAGE_LIMIT_FREE pages par compte free
+  const { count } = await owner.supabase
+    .from("pages")
+    .select("id", { count: "exact", head: true })
+    .eq("owner_id", owner.userId)
+
+  if ((count ?? 0) >= PAGE_LIMIT_FREE) {
+    return {
+      ok: false,
+      error: `Limite de ${PAGE_LIMIT_FREE} pages atteinte sur ce plan.`
+    }
+  }
+
+  // Pré-check unicité du pseudo (l'index unique reste l'arbitre final)
+  const { data: existing } = await owner.supabase
+    .from("pages")
+    .select("id")
+    .eq("username", username)
+    .maybeSingle()
+  if (existing) {
+    return {
+      ok: false,
+      error: "Ce pseudo est déjà pris.",
+      fieldErrors: { username: "Ce pseudo est déjà pris." }
+    }
+  }
+
+  const { data, error } = await owner.supabase
+    .from("pages")
+    .insert({
+      owner_id: owner.userId,
+      username,
+      display_name: display_name?.trim() || username
+    })
+    .select()
+    .single()
+
+  if (error || !data) {
+    return { ok: false, error: "Impossible de créer la page." }
+  }
+
+  revalidatePath("/dashboard")
+  return { ok: true, data }
+}
+
+export async function deletePageAction(
+  pageId: string
+): Promise<ActionResult> {
+  const owner = await getOwner()
+  if (!owner) return UNAUTHENTICATED as ActionResult
+
+  const ownership = await ownsPage(owner.supabase, owner.userId, pageId)
+  if (!ownership.ok) {
+    return { ok: false, error: "Page introuvable." }
+  }
+
+  const { error } = await owner.supabase
+    .from("pages")
+    .delete()
+    .eq("id", pageId)
+    .eq("owner_id", owner.userId)
+
+  if (error) return { ok: false, error: "Impossible de supprimer la page." }
+
+  revalidatePath("/dashboard")
+  revalidatePath(`/${ownership.username}`)
+  return { ok: true, data: undefined }
+}
+
+export async function togglePagePublishedAction(
+  pageId: string,
+  isPublished: boolean
+): Promise<ActionResult> {
+  const owner = await getOwner()
+  if (!owner) return UNAUTHENTICATED as ActionResult
+
+  const parsed = togglePagePublishedSchema.safeParse({
+    id: pageId,
+    is_published: isPublished
+  })
+  if (!parsed.success) {
+    return { ok: false, error: "Paramètre invalide." }
+  }
+
+  const ownership = await ownsPage(owner.supabase, owner.userId, pageId)
+  if (!ownership.ok) {
+    return { ok: false, error: "Page introuvable." }
+  }
+
+  const { error } = await owner.supabase
+    .from("pages")
+    .update({ is_published: isPublished })
+    .eq("id", pageId)
+    .eq("owner_id", owner.userId)
+
+  if (error) {
+    return { ok: false, error: "Impossible de mettre à jour la page." }
+  }
+
+  revalidatePath("/dashboard")
+  revalidatePath(`/dashboard/pages/${pageId}`)
+  revalidatePath(`/${ownership.username}`)
+  return { ok: true, data: undefined }
+}
+
+export async function updatePageAction(
+  pageId: string,
+  input: unknown
+): Promise<ActionResult> {
+  const owner = await getOwner()
+  if (!owner) return UNAUTHENTICATED as ActionResult
+
+  const ownership = await ownsPage(owner.supabase, owner.userId, pageId)
+  if (!ownership.ok) {
+    return { ok: false, error: "Page introuvable." }
+  }
+
+  const parsed = pageUpdateSchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Données invalides.",
+      fieldErrors: fieldErrors(parsed.error)
+    }
+  }
+
+  const update: PageUpdate = {
     display_name: parsed.data.display_name,
     bio: parsed.data.bio.trim() === "" ? null : parsed.data.bio,
     background_color: parsed.data.background_color,
@@ -88,79 +233,94 @@ export async function updateProfileAction(
   }
 
   const { error } = await owner.supabase
-    .from("profiles")
+    .from("pages")
     .update(update)
-    .eq("id", owner.userId)
+    .eq("id", pageId)
+    .eq("owner_id", owner.userId)
 
   if (error) {
-    return { ok: false, error: "Impossible de mettre à jour le profil." }
+    return { ok: false, error: "Impossible de mettre à jour la page." }
   }
 
-  const username = await getUsername(owner.supabase, owner.userId)
-  if (username) revalidatePath(`/${username}`)
-
+  revalidatePath(`/${ownership.username}`)
   return { ok: true, data: undefined }
 }
 
-export async function setAvatarUrlAction(
+export async function setPageAvatarUrlAction(
+  pageId: string,
   url: string | null
 ): Promise<ActionResult> {
   const owner = await getOwner()
   if (!owner) return UNAUTHENTICATED as ActionResult
+
+  const ownership = await ownsPage(owner.supabase, owner.userId, pageId)
+  if (!ownership.ok) {
+    return { ok: false, error: "Page introuvable." }
+  }
 
   if (url !== null && !isAllowedStorageUrl(url)) {
     return { ok: false, error: "URL d'image invalide." }
   }
 
   const { error } = await owner.supabase
-    .from("profiles")
+    .from("pages")
     .update({ avatar_url: url })
-    .eq("id", owner.userId)
+    .eq("id", pageId)
+    .eq("owner_id", owner.userId)
 
   if (error) {
     return { ok: false, error: "Impossible de mettre à jour l'avatar." }
   }
 
-  const username = await getUsername(owner.supabase, owner.userId)
-  if (username) revalidatePath(`/${username}`)
-
+  revalidatePath(`/${ownership.username}`)
   return { ok: true, data: undefined }
 }
 
-export async function setBackgroundUrlAction(
+export async function setPageBackgroundUrlAction(
+  pageId: string,
   url: string | null
 ): Promise<ActionResult> {
   const owner = await getOwner()
   if (!owner) return UNAUTHENTICATED as ActionResult
+
+  const ownership = await ownsPage(owner.supabase, owner.userId, pageId)
+  if (!ownership.ok) {
+    return { ok: false, error: "Page introuvable." }
+  }
 
   if (url !== null && !isAllowedStorageUrl(url)) {
     return { ok: false, error: "URL d'image invalide." }
   }
 
   const { error } = await owner.supabase
-    .from("profiles")
+    .from("pages")
     .update({ background_url: url })
-    .eq("id", owner.userId)
+    .eq("id", pageId)
+    .eq("owner_id", owner.userId)
 
   if (error) {
     return { ok: false, error: "Impossible de mettre à jour le fond." }
   }
 
-  const username = await getUsername(owner.supabase, owner.userId)
-  if (username) revalidatePath(`/${username}`)
-
+  revalidatePath(`/${ownership.username}`)
   return { ok: true, data: undefined }
 }
 
 // =====================================================================
-// LINKS
+// LINKS (scopés par page_id)
 // =====================================================================
 
 export async function createLinkAction(
+  pageId: string,
   input: CreateLinkInput
 ): Promise<ActionResult<Link>> {
   const owner = await getOwner()
   if (!owner) return UNAUTHENTICATED as ActionResult<Link>
+
+  const ownership = await ownsPage(owner.supabase, owner.userId, pageId)
+  if (!ownership.ok) {
+    return { ok: false, error: "Page introuvable." }
+  }
 
   const parsed = createLinkSchema.safeParse(input)
   if (!parsed.success) {
@@ -171,11 +331,10 @@ export async function createLinkAction(
     }
   }
 
-  // Position = max + 1
   const { data: top } = await owner.supabase
     .from("links")
     .select("position")
-    .eq("profile_id", owner.userId)
+    .eq("page_id", pageId)
     .order("position", { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -184,7 +343,8 @@ export async function createLinkAction(
   const { data, error } = await owner.supabase
     .from("links")
     .insert({
-      profile_id: owner.userId,
+      page_id: pageId,
+      type: "link",
       title: parsed.data.title,
       url: parsed.data.url,
       position: nextPosition
@@ -196,17 +356,21 @@ export async function createLinkAction(
     return { ok: false, error: "Impossible d'ajouter le lien." }
   }
 
-  const username = await getUsername(owner.supabase, owner.userId)
-  if (username) revalidatePath(`/${username}`)
-
+  revalidatePath(`/${ownership.username}`)
   return { ok: true, data }
 }
 
 export async function updateLinkAction(
+  pageId: string,
   input: UpdateLinkInput
 ): Promise<ActionResult> {
   const owner = await getOwner()
   if (!owner) return UNAUTHENTICATED as ActionResult
+
+  const ownership = await ownsPage(owner.supabase, owner.userId, pageId)
+  if (!ownership.ok) {
+    return { ok: false, error: "Page introuvable." }
+  }
 
   const parsed = updateLinkSchema.safeParse(input)
   if (!parsed.success) {
@@ -221,21 +385,27 @@ export async function updateLinkAction(
     .from("links")
     .update({ title: parsed.data.title, url: parsed.data.url })
     .eq("id", parsed.data.id)
-    .eq("profile_id", owner.userId)
+    .eq("page_id", pageId)
 
   if (error) {
     return { ok: false, error: "Impossible de mettre à jour le lien." }
   }
 
-  const username = await getUsername(owner.supabase, owner.userId)
-  if (username) revalidatePath(`/${username}`)
-
+  revalidatePath(`/${ownership.username}`)
   return { ok: true, data: undefined }
 }
 
-export async function deleteLinkAction(id: string): Promise<ActionResult> {
+export async function deleteLinkAction(
+  pageId: string,
+  id: string
+): Promise<ActionResult> {
   const owner = await getOwner()
   if (!owner) return UNAUTHENTICATED as ActionResult
+
+  const ownership = await ownsPage(owner.supabase, owner.userId, pageId)
+  if (!ownership.ok) {
+    return { ok: false, error: "Page introuvable." }
+  }
 
   const parsed = deleteLinkSchema.safeParse({ id })
   if (!parsed.success) {
@@ -246,49 +416,49 @@ export async function deleteLinkAction(id: string): Promise<ActionResult> {
     .from("links")
     .delete()
     .eq("id", parsed.data.id)
-    .eq("profile_id", owner.userId)
+    .eq("page_id", pageId)
 
   if (error) {
     return { ok: false, error: "Impossible de supprimer le lien." }
   }
 
-  const username = await getUsername(owner.supabase, owner.userId)
-  if (username) revalidatePath(`/${username}`)
-
+  revalidatePath(`/${ownership.username}`)
   return { ok: true, data: undefined }
 }
 
 export async function reorderLinksAction(
+  pageId: string,
   ids: string[]
 ): Promise<ActionResult> {
   const owner = await getOwner()
   if (!owner) return UNAUTHENTICATED as ActionResult
+
+  const ownership = await ownsPage(owner.supabase, owner.userId, pageId)
+  if (!ownership.ok) {
+    return { ok: false, error: "Page introuvable." }
+  }
 
   const parsed = reorderLinksSchema.safeParse({ ids })
   if (!parsed.success) {
     return { ok: false, error: "Liste invalide." }
   }
 
-  // Vérifie que toutes les ids appartiennent bien à l'utilisateur
-  const { data: ownLinks } = await owner.supabase
+  const { data: own } = await owner.supabase
     .from("links")
     .select("id")
-    .eq("profile_id", owner.userId)
+    .eq("page_id", pageId)
 
-  const ownIds = new Set(ownLinks?.map((l) => l.id) ?? [])
+  const ownIds = new Set(own?.map((l) => l.id) ?? [])
   for (const id of parsed.data.ids) {
-    if (!ownIds.has(id)) {
-      return { ok: false, error: "Liste invalide." }
-    }
+    if (!ownIds.has(id)) return { ok: false, error: "Liste invalide." }
   }
 
-  // Mises à jour individuelles. Pour des listes typiquement <50, c'est très rapide.
   const updates = parsed.data.ids.map((id, index) =>
     owner.supabase
       .from("links")
       .update({ position: index })
       .eq("id", id)
-      .eq("profile_id", owner.userId)
+      .eq("page_id", pageId)
   )
 
   const results = await Promise.all(updates)
@@ -296,8 +466,6 @@ export async function reorderLinksAction(
     return { ok: false, error: "Impossible de réordonner les liens." }
   }
 
-  const username = await getUsername(owner.supabase, owner.userId)
-  if (username) revalidatePath(`/${username}`)
-
+  revalidatePath(`/${ownership.username}`)
   return { ok: true, data: undefined }
 }

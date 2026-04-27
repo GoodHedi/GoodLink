@@ -8,7 +8,8 @@ import { ACCEPTED_IMAGE_TYPES, compressImage } from "@/lib/image-compression"
 import { createClient } from "@/lib/supabase/client"
 
 type Props = {
-  profileId: string
+  ownerId: string
+  pageId: string
   avatarUrl: string | null
   displayName: string
   username: string
@@ -16,7 +17,8 @@ type Props = {
 }
 
 export function AvatarUpload({
-  profileId,
+  ownerId,
+  pageId,
   avatarUrl,
   displayName,
   username,
@@ -27,14 +29,15 @@ export function AvatarUpload({
 
   async function handleSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    e.target.value = "" // permettre de re-sélectionner le même fichier
+    e.target.value = ""
     if (!file) return
 
     setBusy(true)
     try {
       const compressed = await compressImage(file)
       const supabase = createClient()
-      const path = `${profileId}/avatar-${Date.now()}.webp`
+      // Convention : <ownerId>/<pageId>/avatar-<ts>.webp
+      const path = `${ownerId}/${pageId}/avatar-${Date.now()}.webp`
       const { error: upErr } = await supabase.storage
         .from("avatars")
         .upload(path, compressed, {

@@ -33,7 +33,7 @@ export async function signupAction(
   // Pré-vérification du pseudo : permet de retourner un message clair.
   // L'unique index DB reste l'arbitre final en cas de race.
   const { data: existing } = await supabase
-    .from("profiles")
+    .from("pages")
     .select("id")
     .eq("username", username)
     .maybeSingle()

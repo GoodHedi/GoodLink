@@ -10,13 +10,15 @@ import { createClient } from "@/lib/supabase/client"
 import { IMAGE_MAX_DIMENSION } from "@/lib/constants"
 
 type Props = {
-  profileId: string
+  ownerId: string
+  pageId: string
   backgroundUrl: string | null
   onChange: (url: string | null) => Promise<void>
 }
 
 export function BackgroundUpload({
-  profileId,
+  ownerId,
+  pageId,
   backgroundUrl,
   onChange
 }: Props) {
@@ -30,13 +32,13 @@ export function BackgroundUpload({
 
     setBusy(true)
     try {
-      // Background : on tolère un peu plus grand qu'un avatar (1.5× la dim. max).
       const compressed = await compressImage(file, {
         maxWidthOrHeight: Math.round(IMAGE_MAX_DIMENSION * 1.5),
         maxSizeMB: 1.5
       })
       const supabase = createClient()
-      const path = `${profileId}/background-${Date.now()}.webp`
+      // Convention : <ownerId>/<pageId>/background-<ts>.webp
+      const path = `${ownerId}/${pageId}/background-${Date.now()}.webp`
       const { error: upErr } = await supabase.storage
         .from("backgrounds")
         .upload(path, compressed, {
