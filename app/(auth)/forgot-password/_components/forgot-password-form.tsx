@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 import { useFormStatus } from "react-dom"
 import { CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,7 @@ const initialState: ForgotPasswordActionState = {}
 
 export function ForgotPasswordForm() {
   const [state, action] = useActionState(forgotPasswordAction, initialState)
+  const [email, setEmail] = useState("")
 
   if (state.sent) {
     return (
@@ -39,6 +40,8 @@ export function ForgotPasswordForm() {
         placeholder="toi@email.com"
         required
         autoFocus
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
         error={state.errors?.email}
       />
       {state.errors?.form && (

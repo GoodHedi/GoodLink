@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useEffect, useState } from "react"
 import { useFormStatus } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { FormField } from "@/components/ui/form-field"
@@ -13,6 +13,14 @@ const initialState: ResetPasswordActionState = {}
 
 export function ResetPasswordForm() {
   const [state, action] = useActionState(resetPasswordAction, initialState)
+  const [password, setPassword] = useState("")
+
+  useEffect(() => {
+    if (!state.errors) return
+    // Champ vidé seulement si erreur sur le mot de passe (pas en cas
+    // d'erreur form-level type "session expirée").
+    if (state.errors.password) setPassword("")
+  }, [state])
 
   return (
     <form action={action} className="space-y-4" noValidate>
@@ -24,6 +32,8 @@ export function ResetPasswordForm() {
         placeholder="Au moins 8 caractères"
         required
         autoFocus
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
         error={state.errors?.password}
       />
       {state.errors?.form && (
