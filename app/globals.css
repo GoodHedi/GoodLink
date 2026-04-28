@@ -55,4 +55,45 @@
   ::selection {
     background-color: hsl(var(--accent) / 0.25);
   }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Stagger pour les entrées d'éléments */
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+  .delay-400 {
+    animation-delay: 400ms;
+  }
+  .delay-500 {
+    animation-delay: 500ms;
+  }
+
+  /* Texture subtile pour les fonds (alternative à un PNG) */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--forest) / 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--forest) / 0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+
+  /* Halos colorés flous derrière le hero */
+  .blob {
+    @apply pointer-events-none absolute rounded-full blur-3xl;
+  }
 }

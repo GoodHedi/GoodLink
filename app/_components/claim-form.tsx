@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { USERNAME_MAX, USERNAME_REGEX } from "@/lib/constants"
+import { cn } from "@/lib/utils"
 
 /**
  * Champ "claim" de la landing : pseudo → /signup avec pré-remplissage.
@@ -13,6 +13,7 @@ import { USERNAME_MAX, USERNAME_REGEX } from "@/lib/constants"
 export function ClaimForm() {
   const router = useRouter()
   const [value, setValue] = useState("")
+  const [focused, setFocused] = useState(false)
 
   const valid = USERNAME_REGEX.test(value)
 
@@ -30,25 +31,40 @@ export function ClaimForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex w-full max-w-lg flex-col gap-3 sm:flex-row"
+      className={cn(
+        "group flex w-full max-w-md items-center gap-1 rounded-full border-2 bg-white p-1.5 pl-5 shadow-soft transition-all duration-200",
+        focused
+          ? "border-forest shadow-lift"
+          : "border-forest/15 hover:border-forest/30"
+      )}
     >
-      <div className="flex flex-1 items-center rounded-2xl border-2 border-input bg-white pl-4 pr-2 shadow-soft transition-colors focus-within:border-forest">
-        <span className="select-none text-base font-bold text-muted-foreground">
-          @
-        </span>
-        <input
-          value={value}
-          onChange={handleChange}
-          placeholder="ton-pseudo"
-          aria-label="Choisis ton pseudo"
-          autoComplete="off"
-          className="flex-1 bg-transparent px-1 py-3 text-base font-medium text-forest placeholder:text-muted-foreground/60 focus:outline-none"
-        />
-      </div>
-      <Button type="submit" size="lg" variant="accent" disabled={!valid}>
+      <span className="select-none text-base font-bold text-muted-foreground">
+        @
+      </span>
+      <input
+        value={value}
+        onChange={handleChange}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder="ton-pseudo"
+        aria-label="Choisis ton pseudo"
+        autoComplete="off"
+        className="flex-1 bg-transparent px-1 py-2 text-base font-semibold text-forest placeholder:text-forest/30 focus:outline-none"
+      />
+      <button
+        type="submit"
+        disabled={!valid}
+        className={cn(
+          "inline-flex h-11 shrink-0 items-center gap-1 rounded-full px-4 text-sm font-semibold transition-all",
+          "disabled:cursor-not-allowed disabled:opacity-40",
+          valid
+            ? "bg-forest text-cream hover:bg-forest/90 hover:-translate-y-0.5 hover:shadow-soft active:scale-[0.98]"
+            : "bg-forest/10 text-forest/50"
+        )}
+      >
         Réclamer
         <ArrowRight className="h-4 w-4" />
-      </Button>
+      </button>
     </form>
   )
 }
