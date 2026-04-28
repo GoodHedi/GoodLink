@@ -16,11 +16,12 @@ import type { CreateQrInput } from "@/lib/validations/qr"
 import type { QrCode } from "@/types/database"
 
 type Props = {
+  workspaceId: string
   ownerId: string
   initialQrs: QrCode[]
 }
 
-export function QrList({ ownerId, initialQrs }: Props) {
+export function QrList({ workspaceId, ownerId, initialQrs }: Props) {
   const [qrs, setQrs] = useState<QrCode[]>(initialQrs)
   const [mode, setMode] = useState<
     | { kind: "list" }
@@ -31,7 +32,7 @@ export function QrList({ ownerId, initialQrs }: Props) {
   const atLimit = qrs.length >= QR_LIMIT_FREE
 
   async function handleCreate(input: CreateQrInput) {
-    const result = await createQrAction(input)
+    const result = await createQrAction(workspaceId, input)
     if (!result.ok) {
       toast.error(result.error)
       return result

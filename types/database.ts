@@ -16,6 +16,7 @@ export type Json =
 export type LinkType = "link" | "header" | "social"
 export type LinkShape = "pill" | "rounded" | "square"
 export type FontFamily = "sans" | "serif" | "mono" | "display"
+export type WorkspaceRole = "owner" | "editor" | "viewer"
 
 export type Database = {
   __InternalSupabase: {
@@ -50,10 +51,78 @@ export type Database = {
           }
         ]
       }
+      workspaces: {
+        Row: {
+          id: string
+          name: string
+          created_by: string
+          is_personal: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          created_by: string
+          is_personal?: boolean
+          created_at?: string
+        }
+        Update: { name?: string; is_personal?: boolean }
+        Relationships: []
+      }
+      workspace_members: {
+        Row: {
+          workspace_id: string
+          user_id: string
+          role: WorkspaceRole
+          joined_at: string
+        }
+        Insert: {
+          workspace_id: string
+          user_id: string
+          role?: WorkspaceRole
+          joined_at?: string
+        }
+        Update: { role?: WorkspaceRole }
+        Relationships: []
+      }
+      workspace_invites: {
+        Row: {
+          id: string
+          workspace_id: string
+          email: string
+          role: WorkspaceRole
+          token: string
+          invited_by: string
+          expires_at: string
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          email: string
+          role?: WorkspaceRole
+          token?: string
+          invited_by: string
+          expires_at?: string
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          email?: string
+          role?: WorkspaceRole
+        }
+        Relationships: []
+      }
       pages: {
         Row: {
           id: string
           owner_id: string
+          workspace_id: string
           username: string
           display_name: string
           bio: string | null
@@ -72,6 +141,7 @@ export type Database = {
         Insert: {
           id?: string
           owner_id: string
+          workspace_id: string
           username: string
           display_name?: string
           bio?: string | null
@@ -202,6 +272,7 @@ export type Database = {
         Row: {
           id: string
           owner_id: string
+          workspace_id: string
           label: string
           target_url: string
           fg_color: string
@@ -212,6 +283,7 @@ export type Database = {
         Insert: {
           id?: string
           owner_id: string
+          workspace_id: string
           label: string
           target_url: string
           fg_color?: string
@@ -238,13 +310,21 @@ export type Database = {
       }
     }
     Views: { [key: string]: never }
-    Functions: { [key: string]: never }
+    Functions: {
+      accept_workspace_invite: {
+        Args: { p_token: string }
+        Returns: string
+      }
+    }
     Enums: { [key: string]: never }
     CompositeTypes: { [key: string]: never }
   }
 }
 
 // Raccourcis pratiques
+export type Workspace = Database["public"]["Tables"]["workspaces"]["Row"]
+export type WorkspaceMember = Database["public"]["Tables"]["workspace_members"]["Row"]
+export type WorkspaceInvite = Database["public"]["Tables"]["workspace_invites"]["Row"]
 export type Account = Database["public"]["Tables"]["accounts"]["Row"]
 export type AccountUpdate = Database["public"]["Tables"]["accounts"]["Update"]
 export type Page = Database["public"]["Tables"]["pages"]["Row"]

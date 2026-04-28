@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { PagesGrid } from "./_components/pages-grid"
 import { PAGE_LIMIT_FREE } from "@/lib/constants"
+import { getCurrentWorkspaceId } from "@/lib/workspace"
 
 export const metadata: Metadata = { title: "Mes pages" }
 export const dynamic = "force-dynamic"
@@ -14,16 +15,26 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
+  const workspaceId = await getCurrentWorkspaceId(user.id)
+  if (!workspaceId) {
+    return (
+      <div className="container py-12 text-center">
+        <p className="text-muted-foreground">
+          Aucun workspace trouvé. Contacte le support.
+        </p>
+      </div>
+    )
+  }
+
   const { data: pages } = await supabase
     .from("pages")
     .select("*")
-    .eq("owner_id", user.id)
+    .eq("workspace_id", workspaceId)
     .order("created_at", { ascending: true })
 
   const list = pages ?? []
 
   // Vues par page (count head:true → 1 query par page mais payload léger).
-  // Promise.all → parallélisé. ≤20 pages, ≤300 ms en pratique.
   const viewCountsEntries = await Promise.all(
     list.map(async (p) => {
       const { count } = await supabase
@@ -40,7 +51,7 @@ export default async function DashboardPage() {
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-forest sm:text-3xl">
-            Tes pages GoodLink
+            Pages du workspace
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {list.length} / {PAGE_LIMIT_FREE} pages utilisées
@@ -48,7 +59,11 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <PagesGrid pages={list} viewCounts={viewCounts} />
+      <PagesGrid
+        workspaceId={workspaceId}
+        pages={list}
+        viewCounts={viewCounts}
+      />
     </div>
   )
 }

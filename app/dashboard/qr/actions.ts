@@ -32,10 +32,25 @@ async function getOwner() {
 }
 
 export async function createQrAction(
+  workspaceId: string,
   input: CreateQrInput
 ): Promise<ActionResult<QrCode>> {
   const owner = await getOwner()
   if (!owner) return UNAUTHENTICATED as ActionResult<QrCode>
+
+  // Membre éditeur ou owner du workspace ?
+  const { data: membership } = await owner.supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", owner.userId)
+    .maybeSingle()
+  if (
+    !membership ||
+    (membership.role !== "owner" && membership.role !== "editor")
+  ) {
+    return { ok: false, error: "Pas autorisé sur ce workspace." }
+  }
 
   const parsed = createQrSchema.safeParse(input)
   if (!parsed.success) {
@@ -46,16 +61,16 @@ export async function createQrAction(
     }
   }
 
-  // Quota
+  // Quota par workspace
   const { count } = await owner.supabase
     .from("qr_codes")
     .select("id", { count: "exact", head: true })
-    .eq("owner_id", owner.userId)
+    .eq("workspace_id", workspaceId)
 
   if ((count ?? 0) >= QR_LIMIT_FREE) {
     return {
       ok: false,
-      error: `Limite de ${QR_LIMIT_FREE} QR codes atteinte sur ce plan.`
+      error: `Limite de ${QR_LIMIT_FREE} QR codes atteinte sur ce workspace.`
     }
   }
 
@@ -63,6 +78,7 @@ export async function createQrAction(
     .from("qr_codes")
     .insert({
       owner_id: owner.userId,
+      workspace_id: workspaceId,
       label: parsed.data.label,
       target_url: parsed.data.target_url,
       fg_color: parsed.data.fg_color,

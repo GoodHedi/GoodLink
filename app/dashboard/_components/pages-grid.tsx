@@ -17,11 +17,16 @@ import type { Page } from "@/types/database"
 import type { CreatePageInput } from "@/lib/validations/page"
 
 type Props = {
+  workspaceId: string
   pages: Page[]
   viewCounts?: Record<string, number>
 }
 
-export function PagesGrid({ pages: initialPages, viewCounts = {} }: Props) {
+export function PagesGrid({
+  workspaceId,
+  pages: initialPages,
+  viewCounts = {}
+}: Props) {
   const router = useRouter()
   const [pages, setPages] = useState<Page[]>(initialPages)
   const [showCreate, setShowCreate] = useState(false)
@@ -30,7 +35,7 @@ export function PagesGrid({ pages: initialPages, viewCounts = {} }: Props) {
   const atLimit = pages.length >= PAGE_LIMIT_FREE
 
   async function handleCreate(input: CreatePageInput): Promise<boolean> {
-    const result = await createPageAction(input)
+    const result = await createPageAction(workspaceId, input)
     if (!result.ok) {
       toast.error(result.error)
       return false

@@ -47,14 +47,46 @@ async function ownsPage(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   pageId: string
-): Promise<{ ok: true; username: string } | { ok: false }> {
-  const { data } = await supabase
+): Promise<
+  { ok: true; username: string; workspaceId: string } | { ok: false }
+> {
+  const { data: page } = await supabase
     .from("pages")
-    .select("owner_id, username")
+    .select("username, workspace_id")
     .eq("id", pageId)
     .maybeSingle()
-  if (!data || data.owner_id !== userId) return { ok: false }
-  return { ok: true, username: data.username }
+  if (!page) return { ok: false }
+
+  // Membre éditeur ou owner du workspace ?
+  const { data: m } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("workspace_id", page.workspace_id)
+    .eq("user_id", userId)
+    .maybeSingle()
+  if (!m || (m.role !== "owner" && m.role !== "editor")) {
+    return { ok: false }
+  }
+
+  return {
+    ok: true,
+    username: page.username,
+    workspaceId: page.workspace_id
+  }
+}
+
+async function canEditWorkspace(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  workspaceId: string
+): Promise<boolean> {
+  const { data: m } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", userId)
+    .maybeSingle()
+  return Boolean(m && (m.role === "owner" || m.role === "editor"))
 }
 
 function isAllowedStorageUrl(url: string): boolean {
@@ -75,10 +107,16 @@ function isAllowedStorageUrl(url: string): boolean {
 // =====================================================================
 
 export async function createPageAction(
+  workspaceId: string,
   input: CreatePageInput
 ): Promise<ActionResult<Page>> {
   const owner = await getOwner()
   if (!owner) return UNAUTHENTICATED as ActionResult<Page>
+
+  // Édit-droits dans CE workspace ?
+  if (!(await canEditWorkspace(owner.supabase, owner.userId, workspaceId))) {
+    return { ok: false, error: "Pas autorisé sur ce workspace." }
+  }
 
   const parsed = createPageSchema.safeParse(input)
   if (!parsed.success) {
@@ -99,16 +137,16 @@ export async function createPageAction(
     }
   }
 
-  // Quota : max PAGE_LIMIT_FREE pages par compte free
+  // Quota : max PAGE_LIMIT_FREE pages PAR WORKSPACE
   const { count } = await owner.supabase
     .from("pages")
     .select("id", { count: "exact", head: true })
-    .eq("owner_id", owner.userId)
+    .eq("workspace_id", workspaceId)
 
   if ((count ?? 0) >= PAGE_LIMIT_FREE) {
     return {
       ok: false,
-      error: `Limite de ${PAGE_LIMIT_FREE} pages atteinte sur ce plan.`
+      error: `Limite de ${PAGE_LIMIT_FREE} pages atteinte sur ce workspace.`
     }
   }
 
@@ -130,6 +168,7 @@ export async function createPageAction(
     .from("pages")
     .insert({
       owner_id: owner.userId,
+      workspace_id: workspaceId,
       username,
       display_name: display_name?.trim() || username
     })
@@ -155,15 +194,15 @@ export async function duplicatePageAction(
     return { ok: false, error: "Page introuvable." }
   }
 
-  // Quota : limite de pages free
+  // Quota par workspace
   const { count } = await owner.supabase
     .from("pages")
     .select("id", { count: "exact", head: true })
-    .eq("owner_id", owner.userId)
+    .eq("workspace_id", ownership.workspaceId)
   if ((count ?? 0) >= PAGE_LIMIT_FREE) {
     return {
       ok: false,
-      error: `Limite de ${PAGE_LIMIT_FREE} pages atteinte.`
+      error: `Limite de ${PAGE_LIMIT_FREE} pages atteinte sur ce workspace.`
     }
   }
 
@@ -211,11 +250,12 @@ export async function duplicatePageAction(
     }
   }
 
-  // Insert nouvelle page (en brouillon par défaut)
+  // Insert nouvelle page (en brouillon par défaut, même workspace)
   const { data: newPage, error: insertErr } = await owner.supabase
     .from("pages")
     .insert({
       owner_id: owner.userId,
+      workspace_id: ownership.workspaceId,
       username: newUsername,
       display_name: source.display_name,
       bio: source.bio,

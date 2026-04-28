@@ -6,7 +6,12 @@ import { cn } from "@/lib/utils"
 
 const TABS = [
   { href: "/dashboard", label: "Pages", matches: ["/dashboard"] },
-  { href: "/dashboard/qr", label: "QR codes", matches: ["/dashboard/qr"] }
+  { href: "/dashboard/qr", label: "QR codes", matches: ["/dashboard/qr"] },
+  {
+    href: "/dashboard/settings",
+    label: "Paramètres",
+    matches: ["/dashboard/settings"]
+  }
 ]
 
 export function DashboardNav() {
@@ -15,12 +20,15 @@ export function DashboardNav() {
   return (
     <nav className="flex items-center gap-1">
       {TABS.map((tab) => {
-        const active = tab.matches.some((prefix) =>
-          prefix === "/dashboard"
-            ? pathname === "/dashboard" ||
+        const active = tab.matches.some((prefix) => {
+          if (prefix === "/dashboard") {
+            return (
+              pathname === "/dashboard" ||
               pathname.startsWith("/dashboard/pages")
-            : pathname.startsWith(prefix)
-        )
+            )
+          }
+          return pathname.startsWith(prefix)
+        })
         return (
           <Link
             key={tab.href}

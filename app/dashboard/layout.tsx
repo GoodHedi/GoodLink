@@ -3,6 +3,8 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { DashboardNav } from "./_components/dashboard-nav"
 import { UserMenu } from "./_components/user-menu"
+import { WorkspaceSwitcher } from "./_components/workspace-switcher"
+import { getCurrentWorkspaceId, listMyWorkspaces } from "@/lib/workspace"
 
 export default async function DashboardLayout({
   children
@@ -15,14 +17,15 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  // Identité du workspace : on récupère le pseudo de compte (créé au signup
-  // par le trigger handle_new_user). Peut être null pour les comptes
-  // pré-multi-page ou les comptes OAuth.
   const { data: account } = await supabase
     .from("accounts")
     .select("username")
     .eq("id", user.id)
     .maybeSingle()
+
+  const workspaces = await listMyWorkspaces(user.id)
+  const currentId = await getCurrentWorkspaceId(user.id)
+  const current = workspaces.find((w) => w.id === currentId) ?? null
 
   return (
     <div className="min-h-svh bg-cream/50">
@@ -39,9 +42,7 @@ export default async function DashboardLayout({
               <span className="hidden tracking-tight sm:inline">GoodLink</span>
             </Link>
             <span className="hidden h-5 w-px bg-border md:inline-block" />
-            <span className="hidden text-xs font-semibold uppercase tracking-wider text-muted-foreground md:inline">
-              Workspace
-            </span>
+            <WorkspaceSwitcher current={current} workspaces={workspaces} />
           </div>
 
           <DashboardNav />

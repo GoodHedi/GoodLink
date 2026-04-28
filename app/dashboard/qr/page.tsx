@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { QR_LIMIT_FREE } from "@/lib/constants"
+import { getCurrentWorkspaceId } from "@/lib/workspace"
 import { QrList } from "./_components/qr-list"
 
 export const metadata: Metadata = { title: "QR codes" }
@@ -14,10 +15,21 @@ export default async function QrPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
+  const workspaceId = await getCurrentWorkspaceId(user.id)
+  if (!workspaceId) {
+    return (
+      <div className="container py-12 text-center">
+        <p className="text-muted-foreground">
+          Aucun workspace trouvé.
+        </p>
+      </div>
+    )
+  }
+
   const { data: qrs } = await supabase
     .from("qr_codes")
     .select("*")
-    .eq("owner_id", user.id)
+    .eq("workspace_id", workspaceId)
     .order("created_at", { ascending: false })
 
   const list = qrs ?? []
@@ -29,12 +41,15 @@ export default async function QrPage() {
           QR codes
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {list.length} / {QR_LIMIT_FREE} QR codes utilisés. Indépendants de
-          tes pages GoodLink — pointent vers n&apos;importe quelle URL.
+          {list.length} / {QR_LIMIT_FREE} QR codes utilisés.
         </p>
       </div>
 
-      <QrList ownerId={user.id} initialQrs={list} />
+      <QrList
+        workspaceId={workspaceId}
+        ownerId={user.id}
+        initialQrs={list}
+      />
     </div>
   )
 }
