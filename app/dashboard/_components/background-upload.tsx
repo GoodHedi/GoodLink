@@ -8,24 +8,28 @@ import { Label } from "@/components/ui/label"
 import { ACCEPTED_IMAGE_TYPES, compressImage } from "@/lib/image-compression"
 import { createClient } from "@/lib/supabase/client"
 import { IMAGE_MAX_DIMENSION } from "@/lib/constants"
-import { getDominantColor } from "@/lib/dominant-color"
+
+type Kind = "mobile" | "desktop"
 
 type Props = {
   ownerId: string
   pageId: string
   backgroundUrl: string | null
-  /**
-   * @param url URL publique de l'image uploadée, ou null si retrait.
-   * @param dominantColor couleur moyenne extraite de l'image (hex). Permet
-   *   de teinter le fond *autour* du container central sur desktop.
-   */
-  onChange: (url: string | null, dominantColor?: string) => Promise<void>
+  /** "mobile" = image dans la carte centrale (visible partout).
+   *  "desktop" = image autour de la carte (visible seulement sur grand écran). */
+  kind: Kind
+  label: string
+  hint?: string
+  onChange: (url: string | null) => Promise<void>
 }
 
 export function BackgroundUpload({
   ownerId,
   pageId,
   backgroundUrl,
+  kind,
+  label,
+  hint,
   onChange
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -38,18 +42,21 @@ export function BackgroundUpload({
 
     setBusy(true)
     try {
+      // Desktop : un poil plus grand car visible sur écrans wide.
+      const maxDim =
+        kind === "desktop"
+          ? Math.round(IMAGE_MAX_DIMENSION * 2)
+          : Math.round(IMAGE_MAX_DIMENSION * 1.5)
+      const maxMB = kind === "desktop" ? 2 : 1.5
+
       const compressed = await compressImage(file, {
-        maxWidthOrHeight: Math.round(IMAGE_MAX_DIMENSION * 1.5),
-        maxSizeMB: 1.5
+        maxWidthOrHeight: maxDim,
+        maxSizeMB: maxMB
       })
 
-      // Couleur moyenne extraite avant l'upload : sert de fond autour
-      // du container Linktree-style sur desktop.
-      const dominantColor = await getDominantColor(compressed)
-
       const supabase = createClient()
-      // Convention : <ownerId>/<pageId>/background-<ts>.webp
-      const path = `${ownerId}/${pageId}/background-${Date.now()}.webp`
+      // Convention : <ownerId>/<pageId>/background-<kind>-<ts>.webp
+      const path = `${ownerId}/${pageId}/background-${kind}-${Date.now()}.webp`
       const { error: upErr } = await supabase.storage
         .from("backgrounds")
         .upload(path, compressed, {
@@ -62,7 +69,7 @@ export function BackgroundUpload({
         data: { publicUrl }
       } = supabase.storage.from("backgrounds").getPublicUrl(path)
 
-      await onChange(publicUrl, dominantColor)
+      await onChange(publicUrl)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Échec de l'upload.")
     } finally {
@@ -81,7 +88,8 @@ export function BackgroundUpload({
 
   return (
     <div className="space-y-2">
-      <Label>Image de fond</Label>
+      <Label>{label}</Label>
+      {hint && <p className="-mt-1 text-xs text-muted-foreground">{hint}</p>}
       <input
         ref={inputRef}
         type="file"

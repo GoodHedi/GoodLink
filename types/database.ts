@@ -57,6 +57,7 @@ export type Database = {
           bio: string | null
           avatar_url: string | null
           background_url: string | null
+          background_desktop_url: string | null
           background_color: string
           background_overlay: number
           is_published: boolean
@@ -71,6 +72,7 @@ export type Database = {
           bio?: string | null
           avatar_url?: string | null
           background_url?: string | null
+          background_desktop_url?: string | null
           background_color?: string
           background_overlay?: number
           is_published?: boolean
@@ -83,6 +85,7 @@ export type Database = {
           bio?: string | null
           avatar_url?: string | null
           background_url?: string | null
+          background_desktop_url?: string | null
           background_color?: string
           background_overlay?: number
           is_published?: boolean

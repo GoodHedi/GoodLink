@@ -9,7 +9,10 @@ type ProfileSlice = {
   display_name: string
   bio: string | null
   avatar_url: string | null
+  /** Image de fond de la carte centrale (mobile + dans la carte sur desktop). */
   background_url: string | null
+  /** Image de fond visible autour de la carte sur desktop uniquement. */
+  background_desktop_url?: string | null
   background_color: string
   background_overlay: number
 }
@@ -51,24 +54,42 @@ export function PublicProfile({
   className
 }: Props) {
   const hasBg = Boolean(profile.background_url)
+  const hasDesktopBg = Boolean(profile.background_desktop_url)
   const lightText = hasBg
 
-  // Layout Linktree-style :
-  //  - Wrapper extérieur fill l'écran avec `background_color` (couleur
-  //    dominante de l'image quand il y en a une).
-  //  - Container intérieur max-w-md contient l'image + l'overlay + le
-  //    contenu. Sur desktop, ce container est centré, le wrapper teinté
-  //    s'étend à gauche et à droite. Sur mobile, le container fait toute
-  //    la largeur et la couleur d'autour n'est pas visible.
+  // Layout Linktree-current style :
+  //  - Wrapper extérieur fill le viewport. Bg = image desktop si fournie,
+  //    sinon couleur de fond.
+  //  - Carte centrée max-w-md, coins arrondis en haut sur desktop.
+  //    Contient l'image de fond mobile + l'overlay + le contenu.
+  //  - Sur mobile : carte = full width, pas de différence visuelle entre
+  //    "wrapper" et "carte". Pas de coins arrondis (full bleed).
+  //  - Sur desktop : la carte se détache au centre, le bg desktop ou la
+  //    couleur remplit autour, créant un effet de "phone-mockup" intégré.
+  const wrapperStyle: React.CSSProperties = {
+    backgroundColor: profile.background_color
+  }
+  if (hasDesktopBg && profile.background_desktop_url) {
+    wrapperStyle.backgroundImage = `url(${profile.background_desktop_url})`
+    wrapperStyle.backgroundSize = "cover"
+    wrapperStyle.backgroundPosition = "center"
+  }
+
   return (
     <div
       className={cn(
         "relative flex min-h-full flex-col items-center overflow-y-auto",
         className
       )}
-      style={{ backgroundColor: profile.background_color }}
+      style={wrapperStyle}
     >
-      <div className="relative isolate flex w-full max-w-md flex-1 flex-col overflow-hidden">
+      <div
+        className={cn(
+          "relative isolate flex w-full max-w-md flex-1 flex-col overflow-hidden",
+          // Coins arrondis en haut + petite respiration sur desktop
+          "sm:mt-6 sm:rounded-t-[2.25rem]"
+        )}
+      >
         {hasBg && profile.background_url && (
           <>
             <div
@@ -146,24 +167,24 @@ export function PublicProfile({
             )}
           </div>
         </div>
-      </div>
 
-      {showFooter && (
-        <div
-          className={cn(
-            "w-full max-w-md py-5 text-center",
-            lightText ? "text-white/85" : "text-forest/55"
-          )}
-        >
-          <a
-            href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold hover:underline"
+        {showFooter && (
+          <div
+            className={cn(
+              "py-5 text-center",
+              lightText ? "text-white/85" : "text-forest/55"
+            )}
           >
-            <Sparkles className="h-3.5 w-3.5" />
-            Créé avec GoodLink
-          </a>
-        </div>
-      )}
+            <a
+              href="/"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold hover:underline"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Créé avec GoodLink
+            </a>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

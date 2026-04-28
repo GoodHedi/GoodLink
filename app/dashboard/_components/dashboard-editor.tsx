@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { useDebounce } from "@/lib/hooks/use-debounce"
 import {
   setPageAvatarUrlAction,
+  setPageBackgroundDesktopUrlAction,
   setPageBackgroundUrlAction,
   updatePageAction
 } from "../actions"
@@ -71,27 +72,32 @@ export function DashboardEditor({
   )
 
   const handleBackgroundChange = useCallback(
-    async (url: string | null, dominantColor?: string) => {
-      // Optimistic : on applique aussi la nouvelle couleur dominante
-      // localement pour que l'aperçu live soit cohérent immédiatement.
-      setPage((prev) => ({
-        ...prev,
-        background_url: url,
-        background_color:
-          url !== null && dominantColor
-            ? dominantColor
-            : prev.background_color
-      }))
-      const result = await setPageBackgroundUrlAction(
+    async (url: string | null) => {
+      setPage((prev) => ({ ...prev, background_url: url }))
+      const result = await setPageBackgroundUrlAction(initialPage.id, url)
+      if (!result.ok) {
+        toast.error(result.error)
+      } else {
+        toast.success(
+          url ? "Fond mobile mis à jour" : "Fond mobile retiré"
+        )
+      }
+    },
+    [initialPage.id]
+  )
+
+  const handleBackgroundDesktopChange = useCallback(
+    async (url: string | null) => {
+      setPage((prev) => ({ ...prev, background_desktop_url: url }))
+      const result = await setPageBackgroundDesktopUrlAction(
         initialPage.id,
-        url,
-        dominantColor
+        url
       )
       if (!result.ok) {
         toast.error(result.error)
       } else {
         toast.success(
-          url ? "Image de fond mise à jour" : "Image de fond retirée"
+          url ? "Fond desktop mis à jour" : "Fond desktop retiré"
         )
       }
     },
@@ -115,6 +121,7 @@ export function DashboardEditor({
             page={page}
             onChange={updatePageLocal}
             onBackgroundChange={handleBackgroundChange}
+            onBackgroundDesktopChange={handleBackgroundDesktopChange}
           />
           <LinksSection
             pageId={page.id}

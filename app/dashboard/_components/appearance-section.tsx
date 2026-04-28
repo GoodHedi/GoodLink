@@ -16,6 +16,7 @@ type Props = {
   page: Page
   onChange: (patch: Partial<Page>) => void
   onBackgroundChange: (url: string | null) => Promise<void>
+  onBackgroundDesktopChange: (url: string | null) => Promise<void>
 }
 
 const SUGGESTED_COLORS = [
@@ -32,7 +33,8 @@ const SUGGESTED_COLORS = [
 export function AppearanceSection({
   page,
   onChange,
-  onBackgroundChange
+  onBackgroundChange,
+  onBackgroundDesktopChange
 }: Props) {
   const hasBackground = Boolean(page.background_url)
 
@@ -56,7 +58,20 @@ export function AppearanceSection({
           ownerId={page.owner_id}
           pageId={page.id}
           backgroundUrl={page.background_url}
+          kind="mobile"
+          label="Fond mobile"
+          hint="Visible sur tous les écrans, dans la carte centrale."
           onChange={onBackgroundChange}
+        />
+
+        <BackgroundUpload
+          ownerId={page.owner_id}
+          pageId={page.id}
+          backgroundUrl={page.background_desktop_url}
+          kind="desktop"
+          label="Fond desktop (optionnel)"
+          hint="Visible uniquement sur grand écran, autour de la carte."
+          onChange={onBackgroundDesktopChange}
         />
 
         {!hasBackground && (

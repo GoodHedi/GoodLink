@@ -278,8 +278,7 @@ export async function setPageAvatarUrlAction(
 
 export async function setPageBackgroundUrlAction(
   pageId: string,
-  url: string | null,
-  dominantColor?: string
+  url: string | null
 ): Promise<ActionResult> {
   const owner = await getOwner()
   if (!owner) return UNAUTHENTICATED as ActionResult
@@ -293,25 +292,44 @@ export async function setPageBackgroundUrlAction(
     return { ok: false, error: "URL d'image invalide." }
   }
 
-  // Si l'upload fournit une couleur dominante valide, on l'utilise comme
-  // background_color → habillage du desktop autour de l'image.
-  const update: PageUpdate = { background_url: url }
-  if (
-    url !== null &&
-    dominantColor &&
-    /^#[0-9a-fA-F]{6}$/.test(dominantColor)
-  ) {
-    update.background_color = dominantColor
-  }
-
   const { error } = await owner.supabase
     .from("pages")
-    .update(update)
+    .update({ background_url: url })
     .eq("id", pageId)
     .eq("owner_id", owner.userId)
 
   if (error) {
     return { ok: false, error: "Impossible de mettre à jour le fond." }
+  }
+
+  revalidatePath(`/${ownership.username}`)
+  return { ok: true, data: undefined }
+}
+
+export async function setPageBackgroundDesktopUrlAction(
+  pageId: string,
+  url: string | null
+): Promise<ActionResult> {
+  const owner = await getOwner()
+  if (!owner) return UNAUTHENTICATED as ActionResult
+
+  const ownership = await ownsPage(owner.supabase, owner.userId, pageId)
+  if (!ownership.ok) {
+    return { ok: false, error: "Page introuvable." }
+  }
+
+  if (url !== null && !isAllowedStorageUrl(url)) {
+    return { ok: false, error: "URL d'image invalide." }
+  }
+
+  const { error } = await owner.supabase
+    .from("pages")
+    .update({ background_desktop_url: url })
+    .eq("id", pageId)
+    .eq("owner_id", owner.userId)
+
+  if (error) {
+    return { ok: false, error: "Impossible de mettre à jour le fond desktop." }
   }
 
   revalidatePath(`/${ownership.username}`)
