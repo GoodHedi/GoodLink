@@ -26,6 +26,11 @@ type Props = {
   profile: ProfileSlice
   links: LinkSlice[]
   showFooter?: boolean
+  /**
+   * Si vrai, les clics sur les liens passent par `/r/<id>` qui logue
+   * dans link_clicks puis redirige. Activé sur la page publique uniquement.
+   */
+  trackClicks?: boolean
   className?: string
 }
 
@@ -42,6 +47,7 @@ export function PublicProfile({
   profile,
   links,
   showFooter = true,
+  trackClicks = false,
   className
 }: Props) {
   const hasBg = Boolean(profile.background_url)
@@ -129,7 +135,7 @@ export function PublicProfile({
                 Aucun lien pour le moment
               </div>
             ) : (
-              links.map((link) => renderLink(link, lightText))
+              links.map((link) => renderLink(link, lightText, trackClicks))
             )}
           </div>
         </div>
@@ -155,7 +161,7 @@ export function PublicProfile({
   )
 }
 
-function renderLink(link: LinkSlice, lightText: boolean) {
+function renderLink(link: LinkSlice, lightText: boolean, trackClicks: boolean) {
   if (link.type === "header") {
     return (
       <div
@@ -170,11 +176,15 @@ function renderLink(link: LinkSlice, lightText: boolean) {
     )
   }
 
+  // Sur la page publique, on passe par /r/<id> pour tracker. Sinon (preview /
+  // landing), href direct → pas de track + le démo reste fonctionnel.
+  const href = trackClicks ? `/r/${link.id}` : link.url
+
   if (link.type === "social" && isSocialPlatform(link.platform)) {
     return (
       <a
         key={link.id}
-        href={link.url}
+        href={href}
         target="_blank"
         rel="noopener noreferrer"
         className="flex w-full items-center gap-3 rounded-2xl bg-white px-5 py-3.5 font-semibold text-forest shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift active:scale-[0.98]"
@@ -189,7 +199,7 @@ function renderLink(link: LinkSlice, lightText: boolean) {
   return (
     <a
       key={link.id}
-      href={link.url}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       className="block w-full rounded-2xl bg-white px-5 py-4 text-center font-semibold text-forest shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift active:scale-[0.98]"

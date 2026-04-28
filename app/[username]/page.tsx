@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
 import { PublicProfile } from "@/components/public-profile"
 import { getPageByUsername } from "@/lib/page"
+import { createClient } from "@/lib/supabase/server"
 
 type Params = Promise<{ username: string }>
 
@@ -80,11 +81,17 @@ export default async function PublicProfilePage({
   const data = await getPageByUsername(username)
   if (!data) notFound()
 
+  // Track view (fire-and-forget — RLS autorise insert public sur page_views)
+  // Awaité pour fiabilité ; ~50ms d'overhead.
+  const supabase = await createClient()
+  await supabase.from("page_views").insert({ page_id: data.page.id })
+
   return (
     <main className="flex min-h-svh flex-col">
       <PublicProfile
         profile={data.page}
         links={data.links}
+        trackClicks
         className="flex-1"
       />
     </main>

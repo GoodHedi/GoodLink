@@ -12,16 +12,25 @@ import { ProfileSection } from "./profile-section"
 import { AppearanceSection } from "./appearance-section"
 import { LinksSection } from "./links-section"
 import { LivePreview } from "./live-preview"
+import { AnalyticsCard } from "./analytics-card"
 import type { Link as LinkRow, Page } from "@/types/database"
+
+export type PageStats = {
+  totalViews: number
+  totalClicks: number
+  clicksByLinkId: Record<string, number>
+}
 
 type Props = {
   page: Page
   links: LinkRow[]
+  stats: PageStats
 }
 
 export function DashboardEditor({
   page: initialPage,
-  links: initialLinks
+  links: initialLinks,
+  stats
 }: Props) {
   const [page, setPage] = useState<Page>(initialPage)
   const [links, setLinks] = useState<LinkRow[]>(initialLinks)
@@ -80,6 +89,10 @@ export function DashboardEditor({
     <div className="container py-6 lg:py-10">
       <div className="grid gap-6 lg:grid-cols-[1fr_360px] lg:gap-8">
         <div className="space-y-6 lg:max-w-2xl">
+          <AnalyticsCard
+            totalViews={stats.totalViews}
+            totalClicks={stats.totalClicks}
+          />
           <ProfileSection
             page={page}
             onChange={updatePageLocal}
@@ -94,6 +107,7 @@ export function DashboardEditor({
             pageId={page.id}
             links={links}
             onLinksChange={setLinks}
+            clicksByLinkId={stats.clicksByLinkId}
           />
         </div>
 

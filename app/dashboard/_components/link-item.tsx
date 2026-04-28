@@ -7,6 +7,7 @@ import {
   ExternalLink,
   GripVertical,
   Heading,
+  MousePointerClick,
   Trash2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -18,11 +19,17 @@ import type { UpdateLinkInput } from "@/lib/validations/links"
 
 type Props = {
   link: LinkRow
+  clickCount?: number
   onUpdate: (input: UpdateLinkInput) => Promise<void>
   onDelete: () => Promise<void>
 }
 
-export function LinkItem({ link, onUpdate, onDelete }: Props) {
+export function LinkItem({
+  link,
+  clickCount = 0,
+  onUpdate,
+  onDelete
+}: Props) {
   const {
     attributes,
     listeners,
@@ -170,6 +177,16 @@ export function LinkItem({ link, onUpdate, onDelete }: Props) {
           />
         )}
       </div>
+
+      {link.type !== "header" && clickCount > 0 && (
+        <span
+          title={`${clickCount} clic${clickCount > 1 ? "s" : ""}`}
+          className="hidden items-center gap-1 rounded-md bg-accent/15 px-2 py-1 text-xs font-semibold text-accent sm:inline-flex"
+        >
+          <MousePointerClick className="h-3 w-3" />
+          {clickCount}
+        </span>
+      )}
 
       {link.type !== "header" && (
         <a

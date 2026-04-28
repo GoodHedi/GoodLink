@@ -42,9 +42,15 @@ type Props = {
   pageId: string
   links: LinkRow[]
   onLinksChange: (links: LinkRow[]) => void
+  clicksByLinkId?: Record<string, number>
 }
 
-export function LinksSection({ pageId, links, onLinksChange }: Props) {
+export function LinksSection({
+  pageId,
+  links,
+  onLinksChange,
+  clicksByLinkId
+}: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, {
@@ -155,6 +161,7 @@ export function LinksSection({ pageId, links, onLinksChange }: Props) {
                   <LinkItem
                     key={link.id}
                     link={link}
+                    clickCount={clicksByLinkId?.[link.id] ?? 0}
                     onUpdate={handleUpdate}
                     onDelete={() => handleDelete(link.id)}
                   />
