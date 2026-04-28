@@ -310,7 +310,6 @@ export async function deletePageAction(
     .from("pages")
     .delete()
     .eq("id", pageId)
-    .eq("owner_id", owner.userId)
 
   if (error) return { ok: false, error: "Impossible de supprimer la page." }
 
@@ -343,7 +342,6 @@ export async function togglePagePublishedAction(
     .from("pages")
     .update({ is_published: isPublished })
     .eq("id", pageId)
-    .eq("owner_id", owner.userId)
 
   if (error) {
     return { ok: false, error: "Impossible de mettre à jour la page." }
@@ -387,7 +385,6 @@ export async function updatePageAction(
     .from("pages")
     .update(update)
     .eq("id", pageId)
-    .eq("owner_id", owner.userId)
 
   if (error) {
     return { ok: false, error: "Impossible de mettre à jour la page." }
@@ -417,7 +414,6 @@ export async function setPageAvatarUrlAction(
     .from("pages")
     .update({ avatar_url: url })
     .eq("id", pageId)
-    .eq("owner_id", owner.userId)
 
   if (error) {
     return { ok: false, error: "Impossible de mettre à jour l'avatar." }
@@ -447,7 +443,6 @@ export async function setPageBackgroundUrlAction(
     .from("pages")
     .update({ background_url: url })
     .eq("id", pageId)
-    .eq("owner_id", owner.userId)
 
   if (error) {
     return { ok: false, error: "Impossible de mettre à jour le fond." }
@@ -477,7 +472,6 @@ export async function setPageBackgroundDesktopUrlAction(
     .from("pages")
     .update({ background_desktop_url: url })
     .eq("id", pageId)
-    .eq("owner_id", owner.userId)
 
   if (error) {
     return { ok: false, error: "Impossible de mettre à jour le fond desktop." }

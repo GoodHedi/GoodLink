@@ -121,7 +121,6 @@ export async function updateQrAction(
       logo_url: parsed.data.logo_url ?? null
     })
     .eq("id", parsed.data.id)
-    .eq("owner_id", owner.userId)
 
   if (error) {
     return { ok: false, error: "Impossible de mettre à jour le QR code." }
@@ -144,7 +143,6 @@ export async function deleteQrAction(id: string): Promise<ActionResult> {
     .from("qr_codes")
     .delete()
     .eq("id", parsed.data.id)
-    .eq("owner_id", owner.userId)
 
   if (error) {
     return { ok: false, error: "Impossible de supprimer le QR code." }
