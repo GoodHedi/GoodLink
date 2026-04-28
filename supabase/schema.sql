@@ -90,8 +90,13 @@ create table if not exists public.qr_codes (
   target_url text not null check (char_length(target_url) between 1 and 2048),
   fg_color text not null default '#0F291E',
   bg_color text not null default '#FFFFFF',
+  logo_url text,
   created_at timestamptz not null default now()
 );
+
+-- Backfill colonne logo_url si schéma préexistant sans elle (idempotent)
+alter table public.qr_codes
+  add column if not exists logo_url text;
 
 create index if not exists qr_codes_owner_id_idx
   on public.qr_codes (owner_id, created_at desc);

@@ -192,6 +192,7 @@ export type Database = {
           target_url: string
           fg_color: string
           bg_color: string
+          logo_url: string | null
           created_at: string
         }
         Insert: {
@@ -201,6 +202,7 @@ export type Database = {
           target_url: string
           fg_color?: string
           bg_color?: string
+          logo_url?: string | null
           created_at?: string
         }
         Update: {
@@ -208,6 +210,7 @@ export type Database = {
           target_url?: string
           fg_color?: string
           bg_color?: string
+          logo_url?: string | null
         }
         Relationships: [
           {

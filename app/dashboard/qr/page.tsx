@@ -34,7 +34,7 @@ export default async function QrPage() {
         </p>
       </div>
 
-      <QrList initialQrs={list} />
+      <QrList ownerId={user.id} initialQrs={list} />
     </div>
   )
 }

@@ -16,10 +16,11 @@ import type { CreateQrInput } from "@/lib/validations/qr"
 import type { QrCode } from "@/types/database"
 
 type Props = {
+  ownerId: string
   initialQrs: QrCode[]
 }
 
-export function QrList({ initialQrs }: Props) {
+export function QrList({ ownerId, initialQrs }: Props) {
   const [qrs, setQrs] = useState<QrCode[]>(initialQrs)
   const [mode, setMode] = useState<
     | { kind: "list" }
@@ -96,12 +97,14 @@ export function QrList({ initialQrs }: Props) {
     <div className="space-y-6">
       {mode.kind === "create" && (
         <QrForm
+          ownerId={ownerId}
           onSubmit={handleCreate}
           onCancel={() => setMode({ kind: "list" })}
         />
       )}
       {mode.kind === "edit" && (
         <QrForm
+          ownerId={ownerId}
           initial={mode.qr}
           onSubmit={(input) => handleUpdate(mode.qr.id, input)}
           onCancel={() => setMode({ kind: "list" })}

@@ -25,11 +25,31 @@ const colorSchema = z
   .string()
   .regex(HEX_COLOR_REGEX, "Format de couleur invalide (attendu : #RRGGBB).")
 
+// URL d'un logo central optionnel — doit être servie depuis Supabase Storage
+const logoUrlSchema = z
+  .string()
+  .url("URL de logo invalide.")
+  .max(2048, "URL trop longue.")
+  .refine((v) => {
+    try {
+      const u = new URL(v)
+      return (
+        u.protocol === "https:" &&
+        (u.hostname.endsWith(".supabase.co") ||
+          u.hostname.endsWith(".supabase.in"))
+      )
+    } catch {
+      return false
+    }
+  }, "URL d'image non autorisée.")
+  .nullable()
+
 export const createQrSchema = z.object({
   label: labelSchema,
   target_url: targetUrlSchema,
   fg_color: colorSchema.default("#0F291E"),
-  bg_color: colorSchema.default("#FFFFFF")
+  bg_color: colorSchema.default("#FFFFFF"),
+  logo_url: logoUrlSchema.optional().default(null)
 })
 
 export const updateQrSchema = createQrSchema.extend({

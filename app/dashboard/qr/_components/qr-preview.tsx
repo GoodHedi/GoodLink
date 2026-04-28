@@ -9,6 +9,8 @@ type QrPreviewProps = {
   data: string
   fgColor: string
   bgColor: string
+  /** URL d'une image à intégrer au centre du QR code (logo). */
+  logoUrl?: string | null
   label?: string
   size?: number
   className?: string
@@ -19,11 +21,15 @@ type QrPreviewProps = {
  * Rendu d'un QR code via qr-code-styling. Client-only — évite le SSR
  * grâce à la directive "use client". L'instance est créée au mount et
  * mise à jour quand les props changent.
+ *
+ * Si `logoUrl` est fourni, qr-code-styling l'embed au centre et augmente
+ * automatiquement le niveau de correction d'erreur pour rester scannable.
  */
 export function QrPreview({
   data,
   fgColor,
   bgColor,
+  logoUrl,
   label = "qr-code",
   size = 220,
   className,
@@ -33,7 +39,7 @@ export function QrPreview({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const qrRef = useRef<any>(null)
 
-  // Création de l'instance au mount (dynamic import pour éviter SSR)
+  // Création de l'instance au mount
   useEffect(() => {
     let cancelled = false
 
@@ -47,6 +53,13 @@ export function QrPreview({
         type: "svg",
         data: data || "https://example.com",
         margin: 4,
+        image: logoUrl || undefined,
+        imageOptions: {
+          crossOrigin: "anonymous",
+          margin: 4,
+          imageSize: 0.4,
+          hideBackgroundDots: true
+        },
         dotsOptions: { color: fgColor, type: "rounded" },
         backgroundOptions: { color: bgColor },
         cornersSquareOptions: { type: "extra-rounded", color: fgColor },
@@ -68,12 +81,19 @@ export function QrPreview({
     if (!qrRef.current) return
     qrRef.current.update({
       data: data || "https://example.com",
+      image: logoUrl || undefined,
+      imageOptions: {
+        crossOrigin: "anonymous",
+        margin: 4,
+        imageSize: 0.4,
+        hideBackgroundDots: true
+      },
       dotsOptions: { color: fgColor, type: "rounded" },
       backgroundOptions: { color: bgColor },
       cornersSquareOptions: { type: "extra-rounded", color: fgColor },
       cornersDotOptions: { type: "dot", color: fgColor }
     })
-  }, [data, fgColor, bgColor])
+  }, [data, fgColor, bgColor, logoUrl])
 
   function handleDownload(extension: "png" | "svg") {
     if (!qrRef.current) return

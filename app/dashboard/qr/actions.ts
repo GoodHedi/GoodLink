@@ -66,7 +66,8 @@ export async function createQrAction(
       label: parsed.data.label,
       target_url: parsed.data.target_url,
       fg_color: parsed.data.fg_color,
-      bg_color: parsed.data.bg_color
+      bg_color: parsed.data.bg_color,
+      logo_url: parsed.data.logo_url ?? null
     })
     .select()
     .single()
@@ -100,7 +101,8 @@ export async function updateQrAction(
       label: parsed.data.label,
       target_url: parsed.data.target_url,
       fg_color: parsed.data.fg_color,
-      bg_color: parsed.data.bg_color
+      bg_color: parsed.data.bg_color,
+      logo_url: parsed.data.logo_url ?? null
     })
     .eq("id", parsed.data.id)
     .eq("owner_id", owner.userId)

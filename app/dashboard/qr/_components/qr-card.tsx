@@ -23,6 +23,7 @@ export function QrCard({ qr, onEdit, onDelete }: Props) {
           data={qr.target_url}
           fgColor={qr.fg_color}
           bgColor={qr.bg_color}
+          logoUrl={qr.logo_url}
           label={qr.label}
           size={180}
         />
