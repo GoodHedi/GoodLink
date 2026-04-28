@@ -378,16 +378,28 @@ export async function updatePageAction(
     display_name: parsed.data.display_name,
     bio: parsed.data.bio.trim() === "" ? null : parsed.data.bio,
     background_color: parsed.data.background_color,
-    background_overlay: parsed.data.background_overlay
+    background_overlay: parsed.data.background_overlay,
+    link_color: parsed.data.link_color,
+    link_shape: parsed.data.link_shape,
+    font_family: parsed.data.font_family
   }
 
-  const { error } = await owner.supabase
+  // .select() pour vérifier qu'au moins une ligne a été mise à jour.
+  // Sans ça, RLS qui bloque silencieusement renvoie 0 ligne sans erreur.
+  const { data: updated, error } = await owner.supabase
     .from("pages")
     .update(update)
     .eq("id", pageId)
+    .select("id")
 
   if (error) {
     return { ok: false, error: "Impossible de mettre à jour la page." }
+  }
+  if (!updated || updated.length === 0) {
+    return {
+      ok: false,
+      error: "Mise à jour bloquée (droits insuffisants ?)."
+    }
   }
 
   revalidatePath(`/${ownership.username}`)
