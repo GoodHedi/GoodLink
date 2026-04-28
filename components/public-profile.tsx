@@ -92,7 +92,7 @@ export function PublicProfile({
     >
       <div
         className={cn(
-          "relative isolate flex w-full max-w-md flex-1 flex-col overflow-hidden",
+          "relative isolate flex w-full max-w-[604px] flex-1 flex-col overflow-hidden",
           "sm:mt-6 sm:rounded-t-[2.25rem]"
         )}
       >
