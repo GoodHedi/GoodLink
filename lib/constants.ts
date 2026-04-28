@@ -33,6 +33,9 @@ export const LINK_URL_MAX = 2048
 export const PASSWORD_MIN = 8
 export const PASSWORD_MAX = 72 // limite historique bcrypt utilisée par Supabase
 
+export const AGE_MIN = 13
+export const AGE_MAX = 120
+
 // Compression d'image côté client
 export const IMAGE_MAX_SIZE_MB = 1
 export const IMAGE_MAX_DIMENSION = 1280

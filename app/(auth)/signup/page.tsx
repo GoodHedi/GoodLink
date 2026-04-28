@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import type { Metadata } from "next"
 import {
   Card,
@@ -7,6 +8,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card"
+import { createClient } from "@/lib/supabase/server"
 import { SignupForm } from "./_components/signup-form"
 
 export const metadata: Metadata = {
@@ -18,15 +20,22 @@ type Props = {
 }
 
 export default async function SignupPage({ searchParams }: Props) {
+  // Auth gate
+  const supabase = await createClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (user) redirect("/dashboard")
+
   const params = await searchParams
   const prefilledUsername = params?.username ?? ""
 
   return (
     <Card>
       <CardHeader className="text-center">
-        <CardTitle>Crée ton GoodLink</CardTitle>
+        <CardTitle>Crée ton compte</CardTitle>
         <CardDescription>
-          Réclame ton pseudo en moins de 30 secondes.
+          Quelques infos rapides, et c&apos;est parti.
         </CardDescription>
       </CardHeader>
       <CardContent>

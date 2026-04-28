@@ -4,6 +4,7 @@ import { useActionState } from "react"
 import { useFormStatus } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { FormField } from "@/components/ui/form-field"
+import { AGE_MAX, AGE_MIN } from "@/lib/constants"
 import { signupAction, type SignupActionState } from "../actions"
 
 const initialState: SignupActionState = {}
@@ -21,8 +22,8 @@ export function SignupForm({ defaultUsername = "" }: SignupFormProps) {
         label="Pseudo"
         name="username"
         autoComplete="username"
-        prefix="goodlink/"
-        placeholder="pierre"
+        prefix="@"
+        placeholder="ton-pseudo"
         required
         autoFocus
         defaultValue={defaultUsername}
@@ -47,6 +48,17 @@ export function SignupForm({ defaultUsername = "" }: SignupFormProps) {
         required
         error={state.errors?.password}
       />
+      <FormField
+        label="Âge"
+        name="age"
+        type="number"
+        inputMode="numeric"
+        min={AGE_MIN}
+        max={AGE_MAX}
+        placeholder={`${AGE_MIN} ans ou +`}
+        required
+        error={state.errors?.age}
+      />
       {state.errors?.form && (
         <p className="text-sm font-medium text-destructive animate-fade-in">
           {state.errors.form}
@@ -67,7 +79,7 @@ function SubmitButton() {
       className="w-full"
       disabled={pending}
     >
-      {pending ? "Création…" : "Créer mon GoodLink"}
+      {pending ? "Création…" : "Créer mon compte"}
     </Button>
   )
 }

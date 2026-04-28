@@ -33,8 +33,8 @@ export function ClaimForm() {
       className="flex w-full max-w-lg flex-col gap-3 sm:flex-row"
     >
       <div className="flex flex-1 items-center rounded-2xl border-2 border-input bg-white pl-4 pr-2 shadow-soft transition-colors focus-within:border-forest">
-        <span className="select-none text-sm font-medium text-muted-foreground">
-          goodlink/
+        <span className="select-none text-base font-bold text-muted-foreground">
+          @
         </span>
         <input
           value={value}
@@ -42,7 +42,7 @@ export function ClaimForm() {
           placeholder="ton-pseudo"
           aria-label="Choisis ton pseudo"
           autoComplete="off"
-          className="flex-1 bg-transparent py-3 text-base font-medium text-forest placeholder:text-muted-foreground/60 focus:outline-none"
+          className="flex-1 bg-transparent px-1 py-3 text-base font-medium text-forest placeholder:text-muted-foreground/60 focus:outline-none"
         />
       </div>
       <Button type="submit" size="lg" variant="accent" disabled={!valid}>

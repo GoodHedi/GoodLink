@@ -1,5 +1,7 @@
 import { z } from "zod"
 import {
+  AGE_MAX,
+  AGE_MIN,
   PASSWORD_MAX,
   PASSWORD_MIN,
   RESERVED_USERNAMES,
@@ -34,9 +36,24 @@ export const passwordSchema = z
   .min(PASSWORD_MIN, `Au moins ${PASSWORD_MIN} caractères.`)
   .max(PASSWORD_MAX, `Au maximum ${PASSWORD_MAX} caractères.`)
 
+export const ageSchema = z.coerce
+  .number({ invalid_type_error: "L'âge doit être un nombre." })
+  .int("L'âge doit être un nombre entier.")
+  .min(AGE_MIN, `Tu dois avoir au moins ${AGE_MIN} ans.`)
+  .max(AGE_MAX, "Âge invalide.")
+
 export const signupSchema = z.object({
   username: usernameSchema,
   email: emailSchema,
+  password: passwordSchema,
+  age: ageSchema
+})
+
+export const forgotPasswordSchema = z.object({
+  email: emailSchema
+})
+
+export const resetPasswordSchema = z.object({
   password: passwordSchema
 })
 

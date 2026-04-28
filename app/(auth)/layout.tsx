@@ -1,19 +1,12 @@
 import Link from "next/link"
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
 
-export default async function AuthLayout({
+export default function AuthLayout({
   children
 }: {
   children: React.ReactNode
 }) {
-  // Si déjà authentifié, on évite un détour par /login ou /signup
-  const supabase = await createClient()
-  const {
-    data: { user }
-  } = await supabase.auth.getUser()
-  if (user) redirect("/dashboard")
-
+  // Le redirect-if-authed est délégué à chaque page (login / signup), pour
+  // ne pas bloquer /forgot-password aux utilisateurs déjà connectés.
   return (
     <div className="min-h-svh bg-cream flex flex-col">
       <header className="container py-6">

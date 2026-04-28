@@ -21,6 +21,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          id: string
+          username: string
+          age: number | null
+          created_at: string
+        }
+        Insert: {
+          id: string
+          username: string
+          age?: number | null
+          created_at?: string
+        }
+        Update: {
+          username?: string
+          age?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       pages: {
         Row: {
           id: string
@@ -201,6 +228,8 @@ export type Database = {
 }
 
 // Raccourcis pratiques
+export type Account = Database["public"]["Tables"]["accounts"]["Row"]
+export type AccountUpdate = Database["public"]["Tables"]["accounts"]["Update"]
 export type Page = Database["public"]["Tables"]["pages"]["Row"]
 export type PageInsert = Database["public"]["Tables"]["pages"]["Insert"]
 export type PageUpdate = Database["public"]["Tables"]["pages"]["Update"]

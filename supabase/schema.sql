@@ -1,27 +1,30 @@
 -- =====================================================================
--- GoodLink — Schéma v2 (multi-page + types liens + analytics + QR codes)
+-- GoodLink — Schéma canonique (idempotent, non-destructif).
+-- À exécuter dans le SQL Editor de Supabase pour une installation fraîche.
 --
--- ⚠️ MIGRATION DESTRUCTIVE : drop des tables v1 (profiles, links).
--- Ne garde que les comptes auth.users — les liens et profils v1 sont perdus.
--- À exécuter une seule fois dans le SQL Editor de Supabase.
---
--- Le reste du fichier est idempotent (tu peux le rejouer si besoin).
+-- Ce fichier représente l'état attendu du schéma. Pour migrer une base
+-- existante, regarde plutôt supabase/migrations/.
 -- =====================================================================
 
--- ---------- Drop v1 ----------
-drop trigger if exists on_auth_user_created on auth.users;
-drop function if exists public.handle_new_user();
-drop table if exists public.links cascade;
-drop table if exists public.profiles cascade;
-
--- ---------- Extensions ----------
 create extension if not exists pgcrypto;
 
 -- =====================================================================
 -- Tables
 -- =====================================================================
 
--- pages : 1 page = 1 lien public goodlink. 1 utilisateur en a entre 1 et N.
+-- accounts : profil compte (handle + âge), 1:1 avec auth.users
+create table if not exists public.accounts (
+  id uuid primary key references auth.users(id) on delete cascade,
+  username text not null,
+  age int check (age is null or (age >= 13 and age <= 120)),
+  created_at timestamptz not null default now(),
+  constraint accounts_username_format check (username ~ '^[a-z0-9-]{3,20}$')
+);
+
+create unique index if not exists accounts_username_key
+  on public.accounts (username);
+
+-- pages : 1 page = 1 lien public goodlink. 1 utilisateur en a entre 0 et N.
 create table if not exists public.pages (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
@@ -43,7 +46,7 @@ create table if not exists public.pages (
 create unique index if not exists pages_username_key on public.pages (username);
 create index if not exists pages_owner_id_idx on public.pages (owner_id);
 
--- links : avec type pour vague 2 (link/header/social)
+-- links : avec type pour les variantes (link/header/social)
 create table if not exists public.links (
   id uuid primary key default gen_random_uuid(),
   page_id uuid not null references public.pages(id) on delete cascade,
@@ -51,7 +54,7 @@ create table if not exists public.links (
     check (type in ('link', 'header', 'social')),
   title text not null check (char_length(title) between 1 and 80),
   url text not null default '' check (char_length(url) <= 2048),
-  platform text, -- pour type='social' : 'instagram', 'tiktok', etc.
+  platform text,
   position integer not null default 0,
   created_at timestamptz not null default now()
 );
@@ -59,7 +62,7 @@ create table if not exists public.links (
 create index if not exists links_page_id_position_idx
   on public.links (page_id, position);
 
--- page_views : 1 ligne par visite de page publique (vague 3)
+-- page_views : 1 ligne par visite de page publique
 create table if not exists public.page_views (
   id bigint generated always as identity primary key,
   page_id uuid not null references public.pages(id) on delete cascade,
@@ -69,7 +72,7 @@ create table if not exists public.page_views (
 create index if not exists page_views_page_id_idx
   on public.page_views (page_id, viewed_at desc);
 
--- link_clicks : 1 ligne par clic sur un lien (vague 3)
+-- link_clicks : 1 ligne par clic sur un lien
 create table if not exists public.link_clicks (
   id bigint generated always as identity primary key,
   link_id uuid not null references public.links(id) on delete cascade,
@@ -79,7 +82,7 @@ create table if not exists public.link_clicks (
 create index if not exists link_clicks_link_id_idx
   on public.link_clicks (link_id, clicked_at desc);
 
--- qr_codes : feature séparée, attachée à un user (vague 4)
+-- qr_codes : feature séparée, attachée à un user
 create table if not exists public.qr_codes (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
@@ -111,7 +114,9 @@ create trigger pages_set_updated_at
   before update on public.pages
   for each row execute function public.set_updated_at();
 
--- Création automatique de la 1ère page à l'inscription
+-- Création automatique du compte (accounts) à l'inscription.
+-- Lit username + age depuis raw_user_meta_data envoyé via signUp({ options: { data: { ... } } }).
+-- Aucune page n'est créée automatiquement : l'utilisateur les crée depuis le dashboard.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -120,17 +125,24 @@ set search_path = public
 as $$
 declare
   v_username text;
+  v_age int;
 begin
   v_username := lower(coalesce(new.raw_user_meta_data->>'username', ''));
+
+  begin
+    v_age := nullif(new.raw_user_meta_data->>'age', '')::int;
+  exception when others then
+    v_age := null;
+  end;
+
   if v_username = '' then
     return new;
   end if;
-  insert into public.pages (owner_id, username, display_name)
-  values (
-    new.id,
-    v_username,
-    coalesce(nullif(new.raw_user_meta_data->>'display_name', ''), v_username)
-  );
+
+  insert into public.accounts (id, username, age)
+  values (new.id, v_username, v_age)
+  on conflict (id) do nothing;
+
   return new;
 end;
 $$;
@@ -144,13 +156,27 @@ create trigger on_auth_user_created
 -- Row Level Security
 -- =====================================================================
 
+alter table public.accounts enable row level security;
 alter table public.pages enable row level security;
 alter table public.links enable row level security;
 alter table public.page_views enable row level security;
 alter table public.link_clicks enable row level security;
 alter table public.qr_codes enable row level security;
 
--- pages : lecture publique (uniquement les pages publiées), écriture par owner
+-- accounts : select public (handle visible), update/delete par owner
+drop policy if exists "accounts_select_public" on public.accounts;
+create policy "accounts_select_public" on public.accounts
+  for select using (true);
+
+drop policy if exists "accounts_update_own" on public.accounts;
+create policy "accounts_update_own" on public.accounts
+  for update using (auth.uid() = id) with check (auth.uid() = id);
+
+drop policy if exists "accounts_delete_own" on public.accounts;
+create policy "accounts_delete_own" on public.accounts
+  for delete using (auth.uid() = id);
+
+-- pages : lecture publique (uniquement publiées) ou par owner
 drop policy if exists "pages_select_public_or_own" on public.pages;
 create policy "pages_select_public_or_own" on public.pages
   for select using (is_published = true or auth.uid() = owner_id);
@@ -192,8 +218,7 @@ create policy "links_delete_own" on public.links
     auth.uid() = (select owner_id from public.pages where id = page_id)
   );
 
--- page_views : insertion publique (n'importe qui peut enregistrer une vue),
--- lecture par owner uniquement
+-- page_views : insertion publique, lecture par owner
 drop policy if exists "page_views_insert_public" on public.page_views;
 create policy "page_views_insert_public" on public.page_views
   for insert with check (true);
@@ -219,7 +244,7 @@ create policy "link_clicks_select_own" on public.link_clicks
     )
   );
 
--- qr_codes : owner uniquement, jamais public
+-- qr_codes : owner uniquement
 drop policy if exists "qr_codes_select_own" on public.qr_codes;
 create policy "qr_codes_select_own" on public.qr_codes
   for select using (auth.uid() = owner_id);
@@ -237,7 +262,7 @@ create policy "qr_codes_delete_own" on public.qr_codes
   for delete using (auth.uid() = owner_id);
 
 -- =====================================================================
--- Storage (avatars + backgrounds, inchangé)
+-- Storage (avatars + backgrounds)
 -- =====================================================================
 
 insert into storage.buckets (id, name, public)
