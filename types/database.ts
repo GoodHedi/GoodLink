@@ -14,6 +14,8 @@ export type Json =
   | Json[]
 
 export type LinkType = "link" | "header" | "social"
+export type LinkShape = "pill" | "rounded" | "square"
+export type FontFamily = "sans" | "serif" | "mono" | "display"
 
 export type Database = {
   __InternalSupabase: {
@@ -60,6 +62,9 @@ export type Database = {
           background_desktop_url: string | null
           background_color: string
           background_overlay: number
+          link_color: string
+          link_shape: LinkShape
+          font_family: FontFamily
           is_published: boolean
           created_at: string
           updated_at: string
@@ -75,6 +80,9 @@ export type Database = {
           background_desktop_url?: string | null
           background_color?: string
           background_overlay?: number
+          link_color?: string
+          link_shape?: LinkShape
+          font_family?: FontFamily
           is_published?: boolean
           created_at?: string
           updated_at?: string
@@ -88,6 +96,9 @@ export type Database = {
           background_desktop_url?: string | null
           background_color?: string
           background_overlay?: number
+          link_color?: string
+          link_shape?: LinkShape
+          font_family?: FontFamily
           is_published?: boolean
           updated_at?: string
         }

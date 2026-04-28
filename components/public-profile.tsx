@@ -2,7 +2,9 @@ import { Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SocialIcon } from "@/components/social-icon"
 import { isSocialPlatform } from "@/lib/social-platforms"
-import type { LinkType } from "@/types/database"
+import { pickTextColor } from "@/lib/contrast"
+import { fontFamilyVar, shapeClass } from "@/lib/style-options"
+import type { FontFamily, LinkShape, LinkType } from "@/types/database"
 
 type ProfileSlice = {
   username: string
@@ -15,6 +17,9 @@ type ProfileSlice = {
   background_desktop_url?: string | null
   background_color: string
   background_overlay: number
+  link_color: string
+  link_shape: LinkShape
+  font_family: FontFamily
 }
 
 type LinkSlice = {
@@ -42,9 +47,6 @@ type Props = {
  *  - dans le mockup téléphone du dashboard (preview live)
  *  - sur la page publique /[username]
  *  - sur la landing pour l'exemple animé
- *
- * Gère 3 types de liens : link (bouton classique), header (séparateur de
- * section), social (bouton avec icône de plateforme).
  */
 export function PublicProfile({
   profile,
@@ -57,17 +59,22 @@ export function PublicProfile({
   const hasDesktopBg = Boolean(profile.background_desktop_url)
   const lightText = hasBg
 
-  // Layout Linktree-current style :
-  //  - Wrapper extérieur fill le viewport. Bg = image desktop si fournie,
-  //    sinon couleur de fond.
-  //  - Carte centrée max-w-md, coins arrondis en haut sur desktop.
-  //    Contient l'image de fond mobile + l'overlay + le contenu.
-  //  - Sur mobile : carte = full width, pas de différence visuelle entre
-  //    "wrapper" et "carte". Pas de coins arrondis (full bleed).
-  //  - Sur desktop : la carte se détache au centre, le bg desktop ou la
-  //    couleur remplit autour, créant un effet de "phone-mockup" intégré.
+  // Sépare les liens type='social' (icônes en bas) du reste (boutons + headers).
+  const mainLinks = links.filter((l) => l.type !== "social")
+  const socialLinks = links.filter(
+    (l) => l.type === "social" && isSocialPlatform(l.platform)
+  )
+
+  // Style auto : couleur de texte des boutons en fonction de la couleur de fond
+  const linkBg = profile.link_color
+  const linkText = pickTextColor(linkBg)
+  const linkRadius = shapeClass(profile.link_shape)
+  const fontVar = fontFamilyVar(profile.font_family)
+
+  // Style du wrapper extérieur
   const wrapperStyle: React.CSSProperties = {
-    backgroundColor: profile.background_color
+    backgroundColor: profile.background_color,
+    fontFamily: fontVar
   }
   if (hasDesktopBg && profile.background_desktop_url) {
     wrapperStyle.backgroundImage = `url(${profile.background_desktop_url})`
@@ -86,7 +93,6 @@ export function PublicProfile({
       <div
         className={cn(
           "relative isolate flex w-full max-w-md flex-1 flex-col overflow-hidden",
-          // Coins arrondis en haut + petite respiration sur desktop
           "sm:mt-6 sm:rounded-t-[2.25rem]"
         )}
       >
@@ -150,8 +156,9 @@ export function PublicProfile({
             </p>
           )}
 
+          {/* Liens principaux (link + header) */}
           <div className="mt-6 w-full space-y-3">
-            {links.length === 0 ? (
+            {mainLinks.length === 0 && socialLinks.length === 0 ? (
               <div
                 className={cn(
                   "rounded-2xl border border-dashed py-8 text-center text-xs",
@@ -163,9 +170,49 @@ export function PublicProfile({
                 Aucun lien pour le moment
               </div>
             ) : (
-              links.map((link) => renderLink(link, lightText, trackClicks))
+              mainLinks.map((link) =>
+                renderMainLink(link, {
+                  lightText,
+                  trackClicks,
+                  linkBg,
+                  linkText,
+                  linkRadius
+                })
+              )
             )}
           </div>
+
+          {/* Rangée des sociaux : juste sous le dernier lien */}
+          {socialLinks.length > 0 && (
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              {socialLinks.map((link) => {
+                if (!isSocialPlatform(link.platform)) return null
+                const href = trackClicks ? `/r/${link.id}` : link.url
+                return (
+                  <a
+                    key={link.id}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={link.title}
+                    aria-label={link.title}
+                    className={cn(
+                      "inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200",
+                      "hover:-translate-y-0.5 hover:scale-110",
+                      lightText
+                        ? "text-white hover:text-white"
+                        : "text-forest hover:text-forest"
+                    )}
+                  >
+                    <SocialIcon
+                      platform={link.platform}
+                      className="h-7 w-7"
+                    />
+                  </a>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {showFooter && (
@@ -189,14 +236,22 @@ export function PublicProfile({
   )
 }
 
-function renderLink(link: LinkSlice, lightText: boolean, trackClicks: boolean) {
+type RenderOpts = {
+  lightText: boolean
+  trackClicks: boolean
+  linkBg: string
+  linkText: string
+  linkRadius: string
+}
+
+function renderMainLink(link: LinkSlice, opts: RenderOpts) {
   if (link.type === "header") {
     return (
       <div
         key={link.id}
         className={cn(
           "pt-3 pb-1 text-center text-xs font-bold uppercase tracking-wider",
-          lightText ? "text-white/90" : "text-forest/70"
+          opts.lightText ? "text-white/90" : "text-forest/70"
         )}
       >
         {link.title}
@@ -204,33 +259,20 @@ function renderLink(link: LinkSlice, lightText: boolean, trackClicks: boolean) {
     )
   }
 
-  // Sur la page publique, on passe par /r/<id> pour tracker. Sinon (preview /
-  // landing), href direct → pas de track + le démo reste fonctionnel.
-  const href = trackClicks ? `/r/${link.id}` : link.url
+  // type 'link' — type 'social' est rendu séparément en row d'icônes
+  const href = opts.trackClicks ? `/r/${link.id}` : link.url
 
-  if (link.type === "social" && isSocialPlatform(link.platform)) {
-    return (
-      <a
-        key={link.id}
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex w-full items-center gap-3 rounded-2xl bg-white px-5 py-3.5 font-semibold text-forest shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift active:scale-[0.98]"
-      >
-        <SocialIcon platform={link.platform} className="h-5 w-5 shrink-0" />
-        <span className="flex-1 truncate text-left">{link.title}</span>
-      </a>
-    )
-  }
-
-  // type 'link'
   return (
     <a
       key={link.id}
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="block w-full rounded-2xl bg-white px-5 py-4 text-center font-semibold text-forest shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift active:scale-[0.98]"
+      style={{ backgroundColor: opts.linkBg, color: opts.linkText }}
+      className={cn(
+        "block w-full px-5 py-4 text-center font-semibold shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift active:scale-[0.98]",
+        opts.linkRadius
+      )}
     >
       <span className="line-clamp-2">{link.title}</span>
     </a>

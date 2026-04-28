@@ -22,7 +22,10 @@ const DEMO_PROFILE = {
   avatar_url: null,
   background_url: null,
   background_color: "#0F291E",
-  background_overlay: 0.3
+  background_overlay: 0.3,
+  link_color: "#FFFFFF",
+  link_shape: "pill" as const,
+  font_family: "sans" as const
 }
 
 const DEMO_LINKS = [

@@ -37,6 +37,11 @@ create table if not exists public.pages (
   background_color text not null default '#F3EFE9',
   background_overlay numeric not null default 0.3
     check (background_overlay >= 0 and background_overlay <= 1),
+  link_color text not null default '#FFFFFF',
+  link_shape text not null default 'pill'
+    check (link_shape in ('pill', 'rounded', 'square')),
+  font_family text not null default 'sans'
+    check (font_family in ('sans', 'serif', 'mono', 'display')),
   is_published boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -44,9 +49,12 @@ create table if not exists public.pages (
   constraint bio_length check (bio is null or char_length(bio) <= 160)
 );
 
--- Backfill colonne pour bases pré-existantes
+-- Backfill colonnes pour bases pré-existantes
 alter table public.pages
-  add column if not exists background_desktop_url text;
+  add column if not exists background_desktop_url text,
+  add column if not exists link_color text not null default '#FFFFFF',
+  add column if not exists link_shape text not null default 'pill',
+  add column if not exists font_family text not null default 'sans';
 
 create unique index if not exists pages_username_key on public.pages (username);
 create index if not exists pages_owner_id_idx on public.pages (owner_id);

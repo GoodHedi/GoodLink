@@ -1,11 +1,35 @@
 import type { Metadata, Viewport } from "next"
-import { Inter } from "next/font/google"
+import {
+  DM_Serif_Display,
+  Inter,
+  JetBrains_Mono,
+  Space_Grotesk
+} from "next/font/google"
 import { Toaster } from "sonner"
 import "./globals.css"
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
+  display: "swap"
+})
+
+const dmSerif = DM_Serif_Display({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-serif",
+  display: "swap"
+})
+
+const jetBrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap"
+})
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-display",
   display: "swap"
 })
 
@@ -39,7 +63,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr" className={inter.variable}>
+    <html
+      lang="fr"
+      className={`${inter.variable} ${dmSerif.variable} ${jetBrainsMono.variable} ${spaceGrotesk.variable}`}
+    >
       <body className="font-sans">
         {children}
         <Toaster position="top-right" richColors closeButton />

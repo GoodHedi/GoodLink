@@ -26,7 +26,24 @@ export const pageUpdateSchema = z.object({
   background_overlay: z.coerce
     .number({ invalid_type_error: "Opacité invalide." })
     .min(0, "L'opacité doit être supérieure ou égale à 0.")
-    .max(1, "L'opacité doit être inférieure ou égale à 1.")
+    .max(1, "L'opacité doit être inférieure ou égale à 1."),
+
+  link_color: z
+    .string()
+    .regex(HEX_COLOR_REGEX, "Format de couleur invalide (attendu : #RRGGBB).")
+    .default("#FFFFFF"),
+
+  link_shape: z
+    .enum(["pill", "rounded", "square"], {
+      errorMap: () => ({ message: "Forme invalide." })
+    })
+    .default("pill"),
+
+  font_family: z
+    .enum(["sans", "serif", "mono", "display"], {
+      errorMap: () => ({ message: "Police invalide." })
+    })
+    .default("sans")
 })
 
 export type PageUpdateInput = z.infer<typeof pageUpdateSchema>

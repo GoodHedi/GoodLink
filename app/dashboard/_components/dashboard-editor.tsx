@@ -11,6 +11,7 @@ import {
 } from "../actions"
 import { ProfileSection } from "./profile-section"
 import { AppearanceSection } from "./appearance-section"
+import { StyleSection } from "./style-section"
 import { LinksSection } from "./links-section"
 import { LivePreview } from "./live-preview"
 import { AnalyticsCard } from "./analytics-card"
@@ -47,7 +48,10 @@ export function DashboardEditor({
       display_name: debouncedPage.display_name,
       bio: debouncedPage.bio ?? "",
       background_color: debouncedPage.background_color,
-      background_overlay: debouncedPage.background_overlay
+      background_overlay: debouncedPage.background_overlay,
+      link_color: debouncedPage.link_color,
+      link_shape: debouncedPage.link_shape,
+      font_family: debouncedPage.font_family
     }).then((result) => {
       if (!result.ok) toast.error(result.error)
     })
@@ -123,6 +127,7 @@ export function DashboardEditor({
             onBackgroundChange={handleBackgroundChange}
             onBackgroundDesktopChange={handleBackgroundDesktopChange}
           />
+          <StyleSection page={page} onChange={updatePageLocal} />
           <LinksSection
             pageId={page.id}
             links={links}
