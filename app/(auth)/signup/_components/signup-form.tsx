@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react"
 import { useFormStatus } from "react-dom"
+import { CheckCircle2, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FormField } from "@/components/ui/form-field"
 import { AGE_MAX, AGE_MIN } from "@/lib/constants"
@@ -32,6 +33,30 @@ export function SignupForm({ defaultUsername = "" }: SignupFormProps) {
     if (state.errors.password) setPassword("")
     if (state.errors.age) setAge("")
   }, [state])
+
+  // Compte créé, en attente de confirmation email
+  if (state.needsConfirmation) {
+    return (
+      <div className="rounded-2xl border border-accent/30 bg-accent/10 p-6 text-center space-y-3 animate-fade-in">
+        <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-accent-foreground shadow-lift">
+          <Mail className="h-7 w-7" />
+        </div>
+        <h3 className="text-lg font-bold text-forest">
+          Vérifie tes emails
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          On vient d&apos;envoyer un lien de confirmation à{" "}
+          <strong className="text-forest">{state.email}</strong>.
+          <br />
+          Clique dessus et tu seras connecté automatiquement à GoodLink.
+        </p>
+        <p className="flex items-center justify-center gap-1.5 pt-2 text-xs text-muted-foreground">
+          <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
+          Pense à vérifier tes spams si rien dans 2 minutes.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <form action={action} className="space-y-4" noValidate>

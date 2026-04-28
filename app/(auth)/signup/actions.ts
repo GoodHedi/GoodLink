@@ -13,6 +13,8 @@ export type SignupActionState = {
     age?: string
     form?: string
   }
+  needsConfirmation?: boolean
+  email?: string
 }
 
 export async function signupAction(
@@ -43,11 +45,15 @@ export async function signupAction(
     return { errors: { username: "Ce pseudo est déjà pris." } }
   }
 
-  const { error } = await supabase.auth.signUp({
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { username, age }
+      data: { username, age },
+      emailRedirectTo: `${siteUrl}/auth/callback`
     }
   })
 
@@ -55,8 +61,13 @@ export async function signupAction(
     return { errors: { form: humanizeAuthError(error.message) } }
   }
 
-  // La confirmation email est désactivée → session ouverte immédiatement.
-  // Le trigger `handle_new_user` insère la ligne accounts à partir des
-  // raw_user_meta_data.
+  // Si "Confirm email" est activé dans Supabase, signUp ne renvoie pas de
+  // session : l'utilisateur doit cliquer le lien dans l'email. On lui
+  // affiche un message dans la même page (aucun redirect).
+  // Si désactivé, la session est ouverte tout de suite → /dashboard.
+  if (!data.session) {
+    return { needsConfirmation: true, email }
+  }
+
   redirect("/dashboard")
 }
