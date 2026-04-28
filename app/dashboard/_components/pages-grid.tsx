@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PAGE_LIMIT_FREE } from "@/lib/constants"
-import { createPageAction, deletePageAction } from "../actions"
+import {
+  createPageAction,
+  deletePageAction,
+  duplicatePageAction
+} from "../actions"
 import { PageCard } from "./page-card"
 import { NewPageForm } from "./new-page-form"
 import type { Page } from "@/types/database"
@@ -14,9 +18,10 @@ import type { CreatePageInput } from "@/lib/validations/page"
 
 type Props = {
   pages: Page[]
+  viewCounts?: Record<string, number>
 }
 
-export function PagesGrid({ pages: initialPages }: Props) {
+export function PagesGrid({ pages: initialPages, viewCounts = {} }: Props) {
   const router = useRouter()
   const [pages, setPages] = useState<Page[]>(initialPages)
   const [showCreate, setShowCreate] = useState(false)
@@ -49,6 +54,16 @@ export function PagesGrid({ pages: initialPages }: Props) {
         toast.success("Page supprimée")
       }
     })
+  }
+
+  async function handleDuplicate(pageId: string) {
+    const result = await duplicatePageAction(pageId)
+    if (!result.ok) {
+      toast.error(result.error)
+      return
+    }
+    setPages((prev) => [...prev, result.data])
+    toast.success(`Copie créée : @${result.data.username}`)
   }
 
   if (pages.length === 0 && !showCreate) {
@@ -86,7 +101,10 @@ export function PagesGrid({ pages: initialPages }: Props) {
           <PageCard
             key={page.id}
             page={page}
+            viewCount={viewCounts[page.id] ?? 0}
             onDelete={() => handleDelete(page.id)}
+            onDuplicate={() => handleDuplicate(page.id)}
+            atLimit={atLimit}
           />
         ))}
 

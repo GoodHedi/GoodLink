@@ -22,6 +22,19 @@ export default async function DashboardPage() {
 
   const list = pages ?? []
 
+  // Vues par page (count head:true → 1 query par page mais payload léger).
+  // Promise.all → parallélisé. ≤20 pages, ≤300 ms en pratique.
+  const viewCountsEntries = await Promise.all(
+    list.map(async (p) => {
+      const { count } = await supabase
+        .from("page_views")
+        .select("id", { count: "exact", head: true })
+        .eq("page_id", p.id)
+      return [p.id, count ?? 0] as const
+    })
+  )
+  const viewCounts: Record<string, number> = Object.fromEntries(viewCountsEntries)
+
   return (
     <div className="container py-8 lg:py-12">
       <div className="mb-8 flex items-end justify-between gap-4">
@@ -35,7 +48,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <PagesGrid pages={list} />
+      <PagesGrid pages={list} viewCounts={viewCounts} />
     </div>
   )
 }

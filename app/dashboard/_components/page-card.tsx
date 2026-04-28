@@ -2,7 +2,16 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { ExternalLink, Pencil, Trash2, EyeOff, Eye } from "lucide-react"
+import {
+  Check,
+  Copy,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Files,
+  Pencil,
+  Trash2
+} from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -11,13 +20,23 @@ import type { Page } from "@/types/database"
 
 type Props = {
   page: Page
+  viewCount?: number
+  atLimit?: boolean
   onDelete: () => void
+  onDuplicate: () => void
 }
 
-export function PageCard({ page, onDelete }: Props) {
+export function PageCard({
+  page,
+  viewCount = 0,
+  atLimit = false,
+  onDelete,
+  onDuplicate
+}: Props) {
   const [isPublished, setIsPublished] = useState(page.is_published)
   const [busy, setBusy] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   async function togglePublished() {
     setBusy(true)
@@ -33,9 +52,25 @@ export function PageCard({ page, onDelete }: Props) {
     setBusy(false)
   }
 
+  async function copyUrl() {
+    const siteUrl =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "https://agoodlink.net"
+    const fullUrl = `${siteUrl}/${page.username}`
+    try {
+      await navigator.clipboard.writeText(fullUrl)
+      setCopied(true)
+      toast.success("URL copiée")
+      setTimeout(() => setCopied(false), 1800)
+    } catch {
+      toast.error("Impossible de copier — copie manuelle requise.")
+    }
+  }
+
   return (
     <article className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-shadow hover:shadow-lift">
-      {/* Preview header (couleur ou image) */}
+      {/* Preview header */}
       <div
         className="relative h-24"
         style={{
@@ -51,6 +86,13 @@ export function PageCard({ page, onDelete }: Props) {
           <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
             <EyeOff className="h-3 w-3" />
             Brouillon
+          </span>
+        )}
+
+        {viewCount > 0 && (
+          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold tabular-nums text-white">
+            <Eye className="h-3 w-3" />
+            {viewCount.toLocaleString("fr-FR")}
           </span>
         )}
 
@@ -72,15 +114,16 @@ export function PageCard({ page, onDelete }: Props) {
       </div>
 
       <div className="space-y-3 p-4 pt-9">
-        <div>
+        <div className="space-y-0.5">
           <h3 className="truncate font-bold text-forest">
             {page.display_name || `@${page.username}`}
           </h3>
           <p className="truncate text-xs text-muted-foreground">
-            agoodlink/{page.username}
+            agoodlink.net/{page.username}
           </p>
         </div>
 
+        {/* Action principale */}
         <div className="flex items-center gap-1.5">
           <Button asChild size="sm" variant="default" className="flex-1">
             <Link href={`/dashboard/pages/${page.id}`}>
@@ -102,13 +145,47 @@ export function PageCard({ page, onDelete }: Props) {
               <ExternalLink className="h-4 w-4" />
             </Link>
           </Button>
+        </div>
+
+        {/* Actions secondaires */}
+        <div className="grid grid-cols-4 gap-1.5">
           <Button
             type="button"
-            size="icon"
+            size="sm"
+            variant="outline"
+            onClick={copyUrl}
+            title="Copier l'URL publique"
+            className="px-0"
+          >
+            {copied ? (
+              <Check className="h-4 w-4 text-accent" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={onDuplicate}
+            disabled={atLimit}
+            title={
+              atLimit
+                ? "Limite de pages atteinte"
+                : "Dupliquer cette page"
+            }
+            className="px-0"
+          >
+            <Files className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            size="sm"
             variant="outline"
             onClick={togglePublished}
             disabled={busy}
             title={isPublished ? "Mettre en brouillon" : "Publier"}
+            className="px-0"
           >
             {isPublished ? (
               <Eye className="h-4 w-4" />
@@ -118,7 +195,7 @@ export function PageCard({ page, onDelete }: Props) {
           </Button>
           <Button
             type="button"
-            size="icon"
+            size="sm"
             variant="outline"
             onClick={() => {
               if (confirmingDelete) {
@@ -132,6 +209,7 @@ export function PageCard({ page, onDelete }: Props) {
               confirmingDelete ? "Re-clique pour confirmer" : "Supprimer"
             }
             className={cn(
+              "px-0",
               confirmingDelete &&
                 "border-destructive text-destructive hover:bg-destructive/10"
             )}

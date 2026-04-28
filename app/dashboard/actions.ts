@@ -144,6 +144,117 @@ export async function createPageAction(
   return { ok: true, data }
 }
 
+export async function duplicatePageAction(
+  pageId: string
+): Promise<ActionResult<Page>> {
+  const owner = await getOwner()
+  if (!owner) return UNAUTHENTICATED as ActionResult<Page>
+
+  const ownership = await ownsPage(owner.supabase, owner.userId, pageId)
+  if (!ownership.ok) {
+    return { ok: false, error: "Page introuvable." }
+  }
+
+  // Quota : limite de pages free
+  const { count } = await owner.supabase
+    .from("pages")
+    .select("id", { count: "exact", head: true })
+    .eq("owner_id", owner.userId)
+  if ((count ?? 0) >= PAGE_LIMIT_FREE) {
+    return {
+      ok: false,
+      error: `Limite de ${PAGE_LIMIT_FREE} pages atteinte.`
+    }
+  }
+
+  // Source page + ses liens
+  const [sourceResult, linksResult] = await Promise.all([
+    owner.supabase.from("pages").select("*").eq("id", pageId).maybeSingle(),
+    owner.supabase
+      .from("links")
+      .select("*")
+      .eq("page_id", pageId)
+      .order("position", { ascending: true })
+  ])
+  const source = sourceResult.data
+  if (!source) return { ok: false, error: "Page introuvable." }
+
+  // Génère un username unique : <original>-copie, -copie-2, -copie-3, ...
+  // Limité à 20 chars pour respecter le check format DB.
+  function buildCandidate(suffix: string): string {
+    const base = source.username
+    const total = `${base}-copie${suffix}`
+    if (total.length <= 20) return total
+    const room = 20 - `-copie${suffix}`.length
+    return `${base.slice(0, Math.max(1, room))}-copie${suffix}`
+  }
+
+  let newUsername = ""
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const candidate = buildCandidate(attempt === 0 ? "" : `-${attempt + 1}`)
+    if (!/^[a-z0-9-]{3,20}$/.test(candidate)) continue
+    if (RESERVED_USERNAMES.has(candidate)) continue
+    const { data: existing } = await owner.supabase
+      .from("pages")
+      .select("id")
+      .eq("username", candidate)
+      .maybeSingle()
+    if (!existing) {
+      newUsername = candidate
+      break
+    }
+  }
+  if (!newUsername) {
+    return {
+      ok: false,
+      error: "Impossible de générer un pseudo unique pour la copie."
+    }
+  }
+
+  // Insert nouvelle page (en brouillon par défaut)
+  const { data: newPage, error: insertErr } = await owner.supabase
+    .from("pages")
+    .insert({
+      owner_id: owner.userId,
+      username: newUsername,
+      display_name: source.display_name,
+      bio: source.bio,
+      avatar_url: source.avatar_url,
+      background_url: source.background_url,
+      background_desktop_url: source.background_desktop_url,
+      background_color: source.background_color,
+      background_overlay: source.background_overlay,
+      link_color: source.link_color,
+      link_shape: source.link_shape,
+      font_family: source.font_family,
+      is_published: false
+    })
+    .select()
+    .single()
+
+  if (insertErr || !newPage) {
+    return { ok: false, error: "Impossible de dupliquer la page." }
+  }
+
+  // Duplique les liens
+  const sourceLinks = linksResult.data ?? []
+  if (sourceLinks.length > 0) {
+    await owner.supabase.from("links").insert(
+      sourceLinks.map((l) => ({
+        page_id: newPage.id,
+        type: l.type,
+        title: l.title,
+        url: l.url,
+        platform: l.platform,
+        position: l.position
+      }))
+    )
+  }
+
+  revalidatePath("/dashboard")
+  return { ok: true, data: newPage }
+}
+
 export async function deletePageAction(
   pageId: string
 ): Promise<ActionResult> {
