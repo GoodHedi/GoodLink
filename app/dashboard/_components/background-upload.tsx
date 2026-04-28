@@ -8,12 +8,18 @@ import { Label } from "@/components/ui/label"
 import { ACCEPTED_IMAGE_TYPES, compressImage } from "@/lib/image-compression"
 import { createClient } from "@/lib/supabase/client"
 import { IMAGE_MAX_DIMENSION } from "@/lib/constants"
+import { getDominantColor } from "@/lib/dominant-color"
 
 type Props = {
   ownerId: string
   pageId: string
   backgroundUrl: string | null
-  onChange: (url: string | null) => Promise<void>
+  /**
+   * @param url URL publique de l'image uploadée, ou null si retrait.
+   * @param dominantColor couleur moyenne extraite de l'image (hex). Permet
+   *   de teinter le fond *autour* du container central sur desktop.
+   */
+  onChange: (url: string | null, dominantColor?: string) => Promise<void>
 }
 
 export function BackgroundUpload({
@@ -36,6 +42,11 @@ export function BackgroundUpload({
         maxWidthOrHeight: Math.round(IMAGE_MAX_DIMENSION * 1.5),
         maxSizeMB: 1.5
       })
+
+      // Couleur moyenne extraite avant l'upload : sert de fond autour
+      // du container Linktree-style sur desktop.
+      const dominantColor = await getDominantColor(compressed)
+
       const supabase = createClient()
       // Convention : <ownerId>/<pageId>/background-<ts>.webp
       const path = `${ownerId}/${pageId}/background-${Date.now()}.webp`
@@ -51,7 +62,7 @@ export function BackgroundUpload({
         data: { publicUrl }
       } = supabase.storage.from("backgrounds").getPublicUrl(path)
 
-      await onChange(publicUrl)
+      await onChange(publicUrl, dominantColor)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Échec de l'upload.")
     } finally {

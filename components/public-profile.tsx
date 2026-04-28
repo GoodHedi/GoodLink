@@ -53,31 +53,38 @@ export function PublicProfile({
   const hasBg = Boolean(profile.background_url)
   const lightText = hasBg
 
+  // Layout Linktree-style :
+  //  - Wrapper extérieur fill l'écran avec `background_color` (couleur
+  //    dominante de l'image quand il y en a une).
+  //  - Container intérieur max-w-md contient l'image + l'overlay + le
+  //    contenu. Sur desktop, ce container est centré, le wrapper teinté
+  //    s'étend à gauche et à droite. Sur mobile, le container fait toute
+  //    la largeur et la couleur d'autour n'est pas visible.
   return (
     <div
       className={cn(
-        "relative isolate flex min-h-full flex-col overflow-y-auto",
+        "relative flex min-h-full flex-col items-center overflow-y-auto",
         className
       )}
       style={{ backgroundColor: profile.background_color }}
     >
-      {hasBg && profile.background_url && (
-        <>
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 -z-20 bg-cover bg-center"
-            style={{ backgroundImage: `url(${profile.background_url})` }}
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 -z-10 bg-black"
-            style={{ opacity: profile.background_overlay }}
-          />
-        </>
-      )}
+      <div className="relative isolate flex w-full max-w-md flex-1 flex-col overflow-hidden">
+        {hasBg && profile.background_url && (
+          <>
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 -z-20 bg-cover bg-center"
+              style={{ backgroundImage: `url(${profile.background_url})` }}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 -z-10 bg-black"
+              style={{ opacity: profile.background_overlay }}
+            />
+          </>
+        )}
 
-      <div className="mx-auto w-full max-w-md flex-1 px-5 pt-12 pb-8">
-        <div className="flex flex-col items-center text-center">
+        <div className="flex flex-1 flex-col items-center px-5 pt-12 pb-8 text-center">
           {profile.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -144,7 +151,7 @@ export function PublicProfile({
       {showFooter && (
         <div
           className={cn(
-            "py-5 text-center",
+            "w-full max-w-md py-5 text-center",
             lightText ? "text-white/85" : "text-forest/55"
           )}
         >

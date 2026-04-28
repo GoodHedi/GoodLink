@@ -71,9 +71,22 @@ export function DashboardEditor({
   )
 
   const handleBackgroundChange = useCallback(
-    async (url: string | null) => {
-      setPage((prev) => ({ ...prev, background_url: url }))
-      const result = await setPageBackgroundUrlAction(initialPage.id, url)
+    async (url: string | null, dominantColor?: string) => {
+      // Optimistic : on applique aussi la nouvelle couleur dominante
+      // localement pour que l'aperçu live soit cohérent immédiatement.
+      setPage((prev) => ({
+        ...prev,
+        background_url: url,
+        background_color:
+          url !== null && dominantColor
+            ? dominantColor
+            : prev.background_color
+      }))
+      const result = await setPageBackgroundUrlAction(
+        initialPage.id,
+        url,
+        dominantColor
+      )
       if (!result.ok) {
         toast.error(result.error)
       } else {
