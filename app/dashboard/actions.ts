@@ -178,15 +178,15 @@ export async function duplicatePageAction(
   ])
   const source = sourceResult.data
   if (!source) return { ok: false, error: "Page introuvable." }
+  const sourceUsername = source.username
 
   // Génère un username unique : <original>-copie, -copie-2, -copie-3, ...
   // Limité à 20 chars pour respecter le check format DB.
   function buildCandidate(suffix: string): string {
-    const base = source.username
-    const total = `${base}-copie${suffix}`
+    const total = `${sourceUsername}-copie${suffix}`
     if (total.length <= 20) return total
     const room = 20 - `-copie${suffix}`.length
-    return `${base.slice(0, Math.max(1, room))}-copie${suffix}`
+    return `${sourceUsername.slice(0, Math.max(1, room))}-copie${suffix}`
   }
 
   let newUsername = ""
