@@ -1,6 +1,7 @@
 import { Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SocialIcon } from "@/components/social-icon"
+import { AudioPlayer } from "@/components/audio-player"
 import { isSocialPlatform } from "@/lib/social-platforms"
 import { pickTextColor } from "@/lib/contrast"
 import { fontFamilyVar, shapeClass } from "@/lib/style-options"
@@ -20,6 +21,7 @@ type ProfileSlice = {
   link_color: string
   link_shape: LinkShape
   font_family: FontFamily
+  audio_url?: string | null
 }
 
 type LinkSlice = {
@@ -154,6 +156,22 @@ export function PublicProfile({
             >
               {profile.bio}
             </p>
+          )}
+
+          {/* Lecteur audio optionnel */}
+          {profile.audio_url && (
+            <div className="mt-5 w-full">
+              <AudioPlayer
+                src={profile.audio_url}
+                accentColor={linkBg}
+                baseColor={lightText ? "#FFFFFF" : "#0F291E"}
+                surfaceClass={
+                  lightText
+                    ? "bg-white/10 border border-white/20"
+                    : "bg-forest/5 border border-forest/10"
+                }
+              />
+            </div>
           )}
 
           {/* Liens principaux (link + header) */}

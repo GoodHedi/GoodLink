@@ -12,7 +12,7 @@ export const getPageByUsername = cache(async (username: string) => {
   const { data: page } = await supabase
     .from("pages")
     .select(
-      "id, username, display_name, bio, avatar_url, background_url, background_desktop_url, background_color, background_overlay, link_color, link_shape, font_family, is_published"
+      "id, username, display_name, bio, avatar_url, background_url, background_desktop_url, background_color, background_overlay, link_color, link_shape, font_family, audio_url, is_published"
     )
     .eq("username", username)
     .eq("is_published", true)

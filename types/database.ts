@@ -134,6 +134,7 @@ export type Database = {
           link_color: string
           link_shape: LinkShape
           font_family: FontFamily
+          audio_url: string | null
           is_published: boolean
           created_at: string
           updated_at: string
@@ -153,6 +154,7 @@ export type Database = {
           link_color?: string
           link_shape?: LinkShape
           font_family?: FontFamily
+          audio_url?: string | null
           is_published?: boolean
           created_at?: string
           updated_at?: string
@@ -169,6 +171,7 @@ export type Database = {
           link_color?: string
           link_shape?: LinkShape
           font_family?: FontFamily
+          audio_url?: string | null
           is_published?: boolean
           updated_at?: string
         }

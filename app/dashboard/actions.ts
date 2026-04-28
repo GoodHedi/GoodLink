@@ -493,6 +493,35 @@ export async function setPageBackgroundDesktopUrlAction(
   return { ok: true, data: undefined }
 }
 
+export async function setPageAudioUrlAction(
+  pageId: string,
+  url: string | null
+): Promise<ActionResult> {
+  const owner = await getOwner()
+  if (!owner) return UNAUTHENTICATED as ActionResult
+
+  const ownership = await ownsPage(owner.supabase, owner.userId, pageId)
+  if (!ownership.ok) {
+    return { ok: false, error: "Page introuvable." }
+  }
+
+  if (url !== null && !isAllowedStorageUrl(url)) {
+    return { ok: false, error: "URL d'audio invalide." }
+  }
+
+  const { error } = await owner.supabase
+    .from("pages")
+    .update({ audio_url: url })
+    .eq("id", pageId)
+
+  if (error) {
+    return { ok: false, error: "Impossible de mettre à jour l'audio." }
+  }
+
+  revalidatePath(`/${ownership.username}`)
+  return { ok: true, data: undefined }
+}
+
 // =====================================================================
 // LINKS (scopés par page_id)
 // =====================================================================

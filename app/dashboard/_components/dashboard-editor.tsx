@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { useDebounce } from "@/lib/hooks/use-debounce"
 import { cn } from "@/lib/utils"
 import {
+  setPageAudioUrlAction,
   setPageAvatarUrlAction,
   setPageBackgroundDesktopUrlAction,
   setPageBackgroundUrlAction,
@@ -146,6 +147,19 @@ export function DashboardEditor({
     [initialPage.id]
   )
 
+  const handleAudioChange = useCallback(
+    async (url: string | null) => {
+      setPage((prev) => ({ ...prev, audio_url: url }))
+      const result = await setPageAudioUrlAction(initialPage.id, url)
+      if (!result.ok) {
+        toast.error(result.error)
+      } else {
+        toast.success(url ? "Audio mis à jour" : "Audio retiré")
+      }
+    },
+    [initialPage.id]
+  )
+
   return (
     <div className="container py-6 lg:py-10">
       {/* Barre de sauvegarde sticky */}
@@ -186,6 +200,7 @@ export function DashboardEditor({
             onChange={updatePageLocal}
             onBackgroundChange={handleBackgroundChange}
             onBackgroundDesktopChange={handleBackgroundDesktopChange}
+            onAudioChange={handleAudioChange}
           />
           <StyleSection page={page} onChange={updatePageLocal} />
           <LinksSection

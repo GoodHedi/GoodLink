@@ -28,10 +28,24 @@ export default async function PageEditorRoute({
     .from("pages")
     .select("*")
     .eq("id", id)
-    .eq("owner_id", user.id)
     .maybeSingle()
 
   if (!page) notFound()
+
+  // Vérifie que l'utilisateur est membre (owner ou editor) du workspace de la page.
+  const { data: membership } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("workspace_id", page.workspace_id)
+    .eq("user_id", user.id)
+    .maybeSingle()
+
+  if (
+    !membership ||
+    (membership.role !== "owner" && membership.role !== "editor")
+  ) {
+    notFound()
+  }
 
   const { data: links } = await supabase
     .from("links")

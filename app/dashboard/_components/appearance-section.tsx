@@ -10,6 +10,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { BackgroundUpload } from "./background-upload"
+import { AudioUpload } from "./audio-upload"
 import type { Page } from "@/types/database"
 
 type Props = {
@@ -17,6 +18,7 @@ type Props = {
   onChange: (patch: Partial<Page>) => void
   onBackgroundChange: (url: string | null) => Promise<void>
   onBackgroundDesktopChange: (url: string | null) => Promise<void>
+  onAudioChange: (url: string | null) => Promise<void>
 }
 
 const SUGGESTED_COLORS = [
@@ -34,7 +36,8 @@ export function AppearanceSection({
   page,
   onChange,
   onBackgroundChange,
-  onBackgroundDesktopChange
+  onBackgroundDesktopChange,
+  onAudioChange
 }: Props) {
   const hasBackground = Boolean(page.background_url)
 
@@ -72,6 +75,13 @@ export function AppearanceSection({
           label="Fond desktop (optionnel)"
           hint="Visible uniquement sur grand écran, autour de la carte."
           onChange={onBackgroundDesktopChange}
+        />
+
+        <AudioUpload
+          ownerId={page.owner_id}
+          pageId={page.id}
+          audioUrl={page.audio_url}
+          onChange={onAudioChange}
         />
 
         {!hasBackground && (
