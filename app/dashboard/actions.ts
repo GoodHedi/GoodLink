@@ -340,15 +340,38 @@ export async function createLinkAction(
     .maybeSingle()
   const nextPosition = (top?.position ?? -1) + 1
 
+  // Construit l'insert selon le type (discriminated union)
+  const insertPayload =
+    parsed.data.type === "header"
+      ? {
+          page_id: pageId,
+          type: "header" as const,
+          title: parsed.data.title,
+          url: "",
+          platform: null,
+          position: nextPosition
+        }
+      : parsed.data.type === "social"
+        ? {
+            page_id: pageId,
+            type: "social" as const,
+            title: parsed.data.title,
+            url: parsed.data.url,
+            platform: parsed.data.platform,
+            position: nextPosition
+          }
+        : {
+            page_id: pageId,
+            type: "link" as const,
+            title: parsed.data.title,
+            url: parsed.data.url,
+            platform: null,
+            position: nextPosition
+          }
+
   const { data, error } = await owner.supabase
     .from("links")
-    .insert({
-      page_id: pageId,
-      type: "link",
-      title: parsed.data.title,
-      url: parsed.data.url,
-      position: nextPosition
-    })
+    .insert(insertPayload)
     .select()
     .single()
 
@@ -381,9 +404,21 @@ export async function updateLinkAction(
     }
   }
 
+  // Update construit selon le type
+  const updatePayload =
+    parsed.data.type === "header"
+      ? { title: parsed.data.title, url: "", platform: null }
+      : parsed.data.type === "social"
+        ? {
+            title: parsed.data.title,
+            url: parsed.data.url,
+            platform: parsed.data.platform
+          }
+        : { title: parsed.data.title, url: parsed.data.url, platform: null }
+
   const { error } = await owner.supabase
     .from("links")
-    .update({ title: parsed.data.title, url: parsed.data.url })
+    .update(updatePayload)
     .eq("id", parsed.data.id)
     .eq("page_id", pageId)
 

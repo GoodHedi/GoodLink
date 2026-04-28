@@ -1,5 +1,8 @@
 import { Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { SocialIcon } from "@/components/social-icon"
+import { isSocialPlatform } from "@/lib/social-platforms"
+import type { LinkType } from "@/types/database"
 
 type ProfileSlice = {
   username: string
@@ -11,7 +14,13 @@ type ProfileSlice = {
   background_overlay: number
 }
 
-type LinkSlice = { id: string; title: string; url: string }
+type LinkSlice = {
+  id: string
+  type: LinkType
+  title: string
+  url: string
+  platform: string | null
+}
 
 type Props = {
   profile: ProfileSlice
@@ -21,14 +30,13 @@ type Props = {
 }
 
 /**
- * Rendu de la "page" GoodLink d'un utilisateur. Utilisé :
+ * Rendu de la "page" GoodLink. Utilisé :
  *  - dans le mockup téléphone du dashboard (preview live)
  *  - sur la page publique /[username]
  *  - sur la landing pour l'exemple animé
  *
- * Les <a> utilisent target="_blank" rel="noopener noreferrer".
- * Une simple <img> est utilisée plutôt que <Image> pour rester insensible
- * aux URLs externes éventuelles et à l'optimisation Next côté preview.
+ * Gère 3 types de liens : link (bouton classique), header (séparateur de
+ * section), social (bouton avec icône de plateforme).
  */
 export function PublicProfile({
   profile,
@@ -121,17 +129,7 @@ export function PublicProfile({
                 Aucun lien pour le moment
               </div>
             ) : (
-              links.map((link) => (
-                <a
-                  key={link.id}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full rounded-2xl bg-white px-5 py-4 text-center font-semibold text-forest shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift active:scale-[0.98]"
-                >
-                  <span className="line-clamp-2">{link.title}</span>
-                </a>
-              ))
+              links.map((link) => renderLink(link, lightText))
             )}
           </div>
         </div>
@@ -154,5 +152,49 @@ export function PublicProfile({
         </div>
       )}
     </div>
+  )
+}
+
+function renderLink(link: LinkSlice, lightText: boolean) {
+  if (link.type === "header") {
+    return (
+      <div
+        key={link.id}
+        className={cn(
+          "pt-3 pb-1 text-center text-xs font-bold uppercase tracking-wider",
+          lightText ? "text-white/90" : "text-forest/70"
+        )}
+      >
+        {link.title}
+      </div>
+    )
+  }
+
+  if (link.type === "social" && isSocialPlatform(link.platform)) {
+    return (
+      <a
+        key={link.id}
+        href={link.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex w-full items-center gap-3 rounded-2xl bg-white px-5 py-3.5 font-semibold text-forest shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift active:scale-[0.98]"
+      >
+        <SocialIcon platform={link.platform} className="h-5 w-5 shrink-0" />
+        <span className="flex-1 truncate text-left">{link.title}</span>
+      </a>
+    )
+  }
+
+  // type 'link'
+  return (
+    <a
+      key={link.id}
+      href={link.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block w-full rounded-2xl bg-white px-5 py-4 text-center font-semibold text-forest shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift active:scale-[0.98]"
+    >
+      <span className="line-clamp-2">{link.title}</span>
+    </a>
   )
 }

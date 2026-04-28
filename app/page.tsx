@@ -18,10 +18,34 @@ const DEMO_PROFILE = {
 }
 
 const DEMO_LINKS = [
-  { id: "1", title: "🎬 Mes derniers shootings", url: "https://example.com" },
-  { id: "2", title: "📚 Workshop photo nature", url: "https://example.com" },
-  { id: "3", title: "💌 Me contacter", url: "https://example.com" },
-  { id: "4", title: "🛍️ Boutique de tirages", url: "https://example.com" }
+  {
+    id: "1",
+    type: "link" as const,
+    title: "🎬 Mes derniers shootings",
+    url: "https://example.com",
+    platform: null
+  },
+  {
+    id: "2",
+    type: "link" as const,
+    title: "📚 Workshop photo nature",
+    url: "https://example.com",
+    platform: null
+  },
+  {
+    id: "3",
+    type: "link" as const,
+    title: "💌 Me contacter",
+    url: "https://example.com",
+    platform: null
+  },
+  {
+    id: "4",
+    type: "link" as const,
+    title: "🛍️ Boutique de tirages",
+    url: "https://example.com",
+    platform: null
+  }
 ]
 
 const STEPS = [

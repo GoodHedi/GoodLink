@@ -88,9 +88,22 @@ export function LinksSection({ pageId, links, onLinksChange }: Props) {
   async function handleUpdate(input: UpdateLinkInput) {
     const previous = links
     onLinksChange(
-      links.map((l) =>
-        l.id === input.id ? { ...l, title: input.title, url: input.url } : l
-      )
+      links.map((l) => {
+        if (l.id !== input.id) return l
+        if (input.type === "header") {
+          return { ...l, type: "header", title: input.title, url: "", platform: null }
+        }
+        if (input.type === "social") {
+          return {
+            ...l,
+            type: "social",
+            title: input.title,
+            url: input.url,
+            platform: input.platform
+          }
+        }
+        return { ...l, type: "link", title: input.title, url: input.url, platform: null }
+      })
     )
     const result = await updateLinkAction(pageId, input)
     if (!result.ok) {

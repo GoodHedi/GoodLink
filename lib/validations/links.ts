@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { LINK_TITLE_MAX, LINK_URL_MAX } from "@/lib/constants"
+import { LINK_TITLE_MAX, LINK_URL_MAX, SOCIAL_PLATFORMS } from "@/lib/constants"
 
 const titleSchema = z
   .string({ required_error: "Le titre est requis." })
@@ -23,16 +23,45 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
-export const createLinkSchema = z.object({
+const socialPlatformSchema = z.enum(SOCIAL_PLATFORMS, {
+  errorMap: () => ({ message: "Plateforme inconnue." })
+})
+
+// ---------- Création (discriminated union) ----------
+
+const linkVariant = z.object({
+  type: z.literal("link"),
   title: titleSchema,
   url: urlSchema
 })
 
-export const updateLinkSchema = z.object({
-  id: z.string().uuid("Identifiant invalide."),
-  title: titleSchema,
-  url: urlSchema
+const headerVariant = z.object({
+  type: z.literal("header"),
+  title: titleSchema
 })
+
+const socialVariant = z.object({
+  type: z.literal("social"),
+  title: titleSchema,
+  url: urlSchema,
+  platform: socialPlatformSchema
+})
+
+export const createLinkSchema = z.discriminatedUnion("type", [
+  linkVariant,
+  headerVariant,
+  socialVariant
+])
+
+// ---------- Mise à jour (id + variant) ----------
+
+export const updateLinkSchema = z.discriminatedUnion("type", [
+  linkVariant.extend({ id: z.string().uuid("Identifiant invalide.") }),
+  headerVariant.extend({ id: z.string().uuid("Identifiant invalide.") }),
+  socialVariant.extend({ id: z.string().uuid("Identifiant invalide.") })
+])
+
+// ---------- Suppression / réordre (inchangé) ----------
 
 export const deleteLinkSchema = z.object({
   id: z.string().uuid("Identifiant invalide.")
