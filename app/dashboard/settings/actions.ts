@@ -259,6 +259,8 @@ export async function switchWorkspaceAction(
     maxAge: 60 * 60 * 24 * 365
   })
 
-  revalidatePath("/dashboard")
+  // "layout" invalide tout l'arbre /dashboard/* (pages, qr, settings, [id]…),
+  // sinon seul /dashboard exactement est rebuild.
+  revalidatePath("/dashboard", "layout")
   return { ok: true, data: undefined }
 }

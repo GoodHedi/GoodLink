@@ -45,6 +45,10 @@ export function WorkspaceSwitcher({ current, workspaces }: Props) {
         return
       }
       setOpen(false)
+      // Navigue vers la home du workspace (liste des pages). Si on était sur
+      // /dashboard/pages/[id] d'une page de l'ancien workspace, ça donnerait
+      // 404 après le switch ; on évite en redirigeant vers /dashboard.
+      router.push("/dashboard")
       router.refresh()
     })
   }
@@ -63,6 +67,7 @@ export function WorkspaceSwitcher({ current, workspaces }: Props) {
     // Switch immédiat sur le nouveau
     await switchWorkspaceAction(result.data.id)
     setOpen(false)
+    router.push("/dashboard")
     router.refresh()
   }
 
