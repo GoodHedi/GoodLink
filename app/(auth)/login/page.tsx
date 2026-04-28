@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/server"
 import { LoginForm } from "./_components/login-form"
+import { GoogleButton } from "../_components/google-button"
 
 export const metadata: Metadata = {
   title: "Connexion"
@@ -29,6 +30,7 @@ export default async function LoginPage({ searchParams }: Props) {
 
   const params = await searchParams
   const callbackError = params?.error === "callback"
+  const oauthError = params?.error === "oauth"
 
   return (
     <Card>
@@ -44,6 +46,22 @@ export default async function LoginPage({ searchParams }: Props) {
             Le lien est invalide ou expiré. Recommence ou utilise mot de passe oublié.
           </div>
         )}
+        {oauthError && (
+          <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            La connexion Google a échoué. Réessaie ou utilise email + mot de passe.
+          </div>
+        )}
+        <GoogleButton />
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-card px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              ou
+            </span>
+          </div>
+        </div>
         <LoginForm />
         <div className="mt-4 text-center">
           <Link

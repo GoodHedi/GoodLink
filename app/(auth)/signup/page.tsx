@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/server"
 import { SignupForm } from "./_components/signup-form"
+import { GoogleButton } from "../_components/google-button"
 
 export const metadata: Metadata = {
   title: "Inscription"
@@ -39,6 +40,17 @@ export default async function SignupPage({ searchParams }: Props) {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <GoogleButton label="S'inscrire avec Google" />
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-card px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              ou
+            </span>
+          </div>
+        </div>
         <SignupForm defaultUsername={prefilledUsername} />
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Déjà inscrit ?{" "}
