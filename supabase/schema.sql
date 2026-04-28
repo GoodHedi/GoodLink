@@ -8,6 +8,12 @@
 
 create extension if not exists pgcrypto;
 
+-- ⚠️ Cette canonique reflète l'état "pré-workspace" du schéma.
+-- Pour la collaboration multi-user, les migrations à appliquer en plus :
+--   supabase/migrations/2026-04-28-5_workspaces.sql
+--   supabase/migrations/2026-04-28-6_fix_rls_recursion.sql
+-- (Une consolidation future de schema.sql intégrera tout.)
+
 -- =====================================================================
 -- Tables
 -- =====================================================================
