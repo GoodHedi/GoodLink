@@ -8,7 +8,6 @@ import { ACCEPTED_IMAGE_TYPES, compressImage } from "@/lib/image-compression"
 import { createClient } from "@/lib/supabase/client"
 
 type Props = {
-  ownerId: string
   pageId: string
   avatarUrl: string | null
   displayName: string
@@ -17,7 +16,6 @@ type Props = {
 }
 
 export function AvatarUpload({
-  ownerId,
   pageId,
   avatarUrl,
   displayName,
@@ -36,8 +34,13 @@ export function AvatarUpload({
     try {
       const compressed = await compressImage(file)
       const supabase = createClient()
-      // Convention : <ownerId>/<pageId>/avatar-<ts>.webp
-      const path = `${ownerId}/${pageId}/avatar-${Date.now()}.webp`
+      // Le 1er dossier doit être l'ID de l'uploader (auth.uid()) pour passer la
+      // RLS storage. Pas page.owner_id : un editor invité n'est pas owner_id.
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Pas connecté.")
+      const path = `${user.id}/${pageId}/avatar-${Date.now()}.webp`
       const { error: upErr } = await supabase.storage
         .from("avatars")
         .upload(path, compressed, {

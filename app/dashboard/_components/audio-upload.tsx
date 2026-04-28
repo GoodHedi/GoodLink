@@ -11,13 +11,12 @@ const MAX_BYTES = 1 * 1024 * 1024 // 1 MB strict
 const ACCEPTED = ["audio/mpeg", "audio/mp3", "audio/mp4", "audio/m4a", "audio/aac", "audio/webm", "audio/ogg"]
 
 type Props = {
-  ownerId: string
   pageId: string
   audioUrl: string | null
   onChange: (url: string | null) => Promise<void>
 }
 
-export function AudioUpload({ ownerId, pageId, audioUrl, onChange }: Props) {
+export function AudioUpload({ pageId, audioUrl, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const [busy, setBusy] = useState(false)
@@ -46,8 +45,14 @@ export function AudioUpload({ ownerId, pageId, audioUrl, onChange }: Props) {
     setBusy(true)
     try {
       const supabase = createClient()
+      // Le 1er dossier doit être l'ID de l'uploader (auth.uid()) pour passer la
+      // RLS storage. Pas page.owner_id : un editor invité n'est pas owner_id.
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Pas connecté.")
       const ext = (file.name.split(".").pop() || "mp3").toLowerCase()
-      const path = `${ownerId}/${pageId}/audio-${Date.now()}.${ext}`
+      const path = `${user.id}/${pageId}/audio-${Date.now()}.${ext}`
       const { error: upErr } = await supabase.storage
         .from("audios")
         .upload(path, file, {

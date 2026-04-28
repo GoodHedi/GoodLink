@@ -33,7 +33,6 @@ export function ProfileSection({ page, onChange, onAvatarChange }: Props) {
       </CardHeader>
       <CardContent className="space-y-5">
         <AvatarUpload
-          ownerId={page.owner_id}
           pageId={page.id}
           avatarUrl={page.avatar_url}
           displayName={page.display_name}

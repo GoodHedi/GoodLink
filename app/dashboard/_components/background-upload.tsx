@@ -12,7 +12,6 @@ import { IMAGE_MAX_DIMENSION } from "@/lib/constants"
 type Kind = "mobile" | "desktop"
 
 type Props = {
-  ownerId: string
   pageId: string
   backgroundUrl: string | null
   /** "mobile" = image dans la carte centrale (visible partout).
@@ -24,7 +23,6 @@ type Props = {
 }
 
 export function BackgroundUpload({
-  ownerId,
   pageId,
   backgroundUrl,
   kind,
@@ -55,8 +53,13 @@ export function BackgroundUpload({
       })
 
       const supabase = createClient()
-      // Convention : <ownerId>/<pageId>/background-<kind>-<ts>.webp
-      const path = `${ownerId}/${pageId}/background-${kind}-${Date.now()}.webp`
+      // Le 1er dossier doit être l'ID de l'uploader (auth.uid()) pour passer la
+      // RLS storage. Pas page.owner_id : un editor invité n'est pas owner_id.
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Pas connecté.")
+      const path = `${user.id}/${pageId}/background-${kind}-${Date.now()}.webp`
       const { error: upErr } = await supabase.storage
         .from("backgrounds")
         .upload(path, compressed, {

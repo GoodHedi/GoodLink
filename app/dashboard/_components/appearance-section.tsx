@@ -58,7 +58,6 @@ export function AppearanceSection({
       </CardHeader>
       <CardContent className="space-y-6">
         <BackgroundUpload
-          ownerId={page.owner_id}
           pageId={page.id}
           backgroundUrl={page.background_url}
           kind="mobile"
@@ -68,7 +67,6 @@ export function AppearanceSection({
         />
 
         <BackgroundUpload
-          ownerId={page.owner_id}
           pageId={page.id}
           backgroundUrl={page.background_desktop_url}
           kind="desktop"
@@ -78,7 +76,6 @@ export function AppearanceSection({
         />
 
         <AudioUpload
-          ownerId={page.owner_id}
           pageId={page.id}
           audioUrl={page.audio_url}
           onChange={onAudioChange}
