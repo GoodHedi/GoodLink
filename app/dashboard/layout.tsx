@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { LogOut } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
+import { DashboardNav } from "./_components/dashboard-nav"
 
 export default async function DashboardLayout({
   children
@@ -29,14 +30,7 @@ export default async function DashboardLayout({
             <span className="hidden tracking-tight sm:inline">GoodLink</span>
           </Link>
 
-          <nav className="flex items-center gap-1">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/dashboard">Pages</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/dashboard/qr">QR codes</Link>
-            </Button>
-          </nav>
+          <DashboardNav />
 
           <form action="/auth/signout" method="post">
             <Button variant="outline" size="sm" type="submit">
