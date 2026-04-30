@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { safeExternalUrl } from "@/lib/safe-redirect"
 
 /**
  * Tracker de clic + redirect.
@@ -33,9 +34,17 @@ export async function GET(
     return NextResponse.redirect(new URL("/", request.url), { status: 302 })
   }
 
+  // Re-valide l'URL côté serveur : Zod l'a validée à l'INSERT, mais on
+  // ajoute une défense en profondeur (anti open-redirect) pour parer
+  // tout contournement futur (régression Zod, écriture directe en DB...).
+  const safe = safeExternalUrl(link.url)
+  if (!safe) {
+    return NextResponse.redirect(new URL("/", request.url), { status: 302 })
+  }
+
   // Log du clic. On attend la promesse pour fiabilité.
   // ~50ms ajouté à la latence du redirect, acceptable.
   await supabase.from("link_clicks").insert({ link_id: id })
 
-  return NextResponse.redirect(link.url, { status: 302 })
+  return NextResponse.redirect(safe, { status: 302 })
 }

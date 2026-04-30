@@ -20,6 +20,38 @@ import { createClient } from "@/lib/supabase/client"
 const MAX_BYTES = 1 * 1024 * 1024 // 1 MB strict
 const MAX_RECORD_SECONDS = 60 // garde-fou pour ne pas dépasser 1 MB en webm/opus
 
+/**
+ * Whitelist stricte des Content-Type stockés. Le navigateur peut renvoyer
+ * `text/html` pour un fichier renommé en .mp3 — on refuse de propager ça
+ * vers le bucket public Supabase pour éviter qu'il serve du HTML.
+ */
+const ALLOWED_AUDIO_MIMES = new Set([
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/mp4",
+  "audio/m4a",
+  "audio/aac",
+  "audio/x-m4a",
+  "audio/webm",
+  "audio/ogg"
+])
+
+/** Extension → MIME canonique pour fallback si type navigateur inconnu. */
+const EXT_TO_MIME: Record<string, string> = {
+  mp3: "audio/mpeg",
+  m4a: "audio/mp4",
+  aac: "audio/aac",
+  ogg: "audio/ogg",
+  webm: "audio/webm"
+}
+
+function safeAudioContentType(rawType: string, ext: string): string | null {
+  const t = rawType.toLowerCase().split(";")[0]?.trim()
+  if (t && ALLOWED_AUDIO_MIMES.has(t)) return t
+  // Pas un MIME audio propre → essaie via l'extension
+  return EXT_TO_MIME[ext.toLowerCase()] ?? null
+}
+
 type Props = {
   pageId: string
   audioUrl: string | null
@@ -49,6 +81,13 @@ export function AudioUpload({ pageId, audioUrl, onChange }: Props) {
         return
       }
 
+      // Whitelist du Content-Type avant envoi au bucket public.
+      const safeType = safeAudioContentType(contentType, ext)
+      if (!safeType) {
+        toast.error("Format audio non supporté.")
+        return
+      }
+
       setBusy(true)
       try {
         const supabase = createClient()
@@ -61,7 +100,7 @@ export function AudioUpload({ pageId, audioUrl, onChange }: Props) {
           .from("audios")
           .upload(path, blob, {
             upsert: true,
-            contentType
+            contentType: safeType
           })
         if (upErr) throw new Error(upErr.message)
 

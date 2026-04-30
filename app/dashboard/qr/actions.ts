@@ -31,6 +31,31 @@ async function getOwner() {
   return { supabase, userId: user.id }
 }
 
+/**
+ * Vérifie que l'utilisateur peut modifier/supprimer un QR : owner ou editor
+ * du workspace propriétaire du QR. Defense-en-profondeur : RLS bloquerait
+ * aussi, mais on évite la dépendance unique.
+ */
+async function canEditQr(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  qrId: string
+): Promise<boolean> {
+  const { data: qr } = await supabase
+    .from("qr_codes")
+    .select("workspace_id")
+    .eq("id", qrId)
+    .maybeSingle()
+  if (!qr) return false
+  const { data: m } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("workspace_id", qr.workspace_id)
+    .eq("user_id", userId)
+    .maybeSingle()
+  return Boolean(m && (m.role === "owner" || m.role === "editor"))
+}
+
 export async function createQrAction(
   workspaceId: string,
   input: CreateQrInput
@@ -114,6 +139,16 @@ export async function updateQrAction(
     }
   }
 
+  // Defense en profondeur : check applicatif d'autorisation.
+  const allowed = await canEditQr(
+    owner.supabase,
+    owner.userId,
+    parsed.data.id
+  )
+  if (!allowed) {
+    return { ok: false, error: "QR introuvable." }
+  }
+
   const { error } = await owner.supabase
     .from("qr_codes")
     .update({
@@ -140,6 +175,16 @@ export async function deleteQrAction(id: string): Promise<ActionResult> {
   const parsed = deleteQrSchema.safeParse({ id })
   if (!parsed.success) {
     return { ok: false, error: "Identifiant invalide." }
+  }
+
+  // Defense en profondeur : check applicatif d'autorisation.
+  const allowed = await canEditQr(
+    owner.supabase,
+    owner.userId,
+    parsed.data.id
+  )
+  if (!allowed) {
+    return { ok: false, error: "QR introuvable." }
   }
 
   const { error } = await owner.supabase

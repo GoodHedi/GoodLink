@@ -95,6 +95,19 @@ export async function revokeInviteAction(
   const owner = await getOwner()
   if (!owner) return UN as ActionResult
 
+  // Defense en profondeur : vérifier que l'appelant est owner du workspace
+  // de l'invitation, sans faire confiance à la seule RLS.
+  const { data: invite } = await owner.supabase
+    .from("workspace_invites")
+    .select("workspace_id")
+    .eq("id", inviteId)
+    .maybeSingle()
+  if (!invite) return { ok: false, error: "Invitation introuvable." }
+
+  if (!(await isOwnerOf(owner.supabase, owner.userId, invite.workspace_id))) {
+    return { ok: false, error: "Pas autorisé." }
+  }
+
   const { error } = await owner.supabase
     .from("workspace_invites")
     .delete()
