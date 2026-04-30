@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
+  ArrowRightLeft,
   Check,
   Copy,
   ExternalLink,
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { togglePagePublishedAction } from "../actions"
 import type { Page } from "@/types/database"
+import type { MoveTarget } from "./pages-grid"
 
 type Props = {
   page: Page
@@ -24,6 +26,8 @@ type Props = {
   atLimit?: boolean
   onDelete: () => void
   onDuplicate: () => void
+  onMove?: (targetWorkspaceId: string) => void
+  moveTargets?: MoveTarget[]
 }
 
 export function PageCard({
@@ -31,12 +35,27 @@ export function PageCard({
   viewCount = 0,
   atLimit = false,
   onDelete,
-  onDuplicate
+  onDuplicate,
+  onMove,
+  moveTargets = []
 }: Props) {
   const [isPublished, setIsPublished] = useState(page.is_published)
   const [busy, setBusy] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [moveOpen, setMoveOpen] = useState(false)
+  const moveRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!moveOpen) return
+    function onPointer(e: PointerEvent) {
+      if (moveRef.current && !moveRef.current.contains(e.target as Node)) {
+        setMoveOpen(false)
+      }
+    }
+    document.addEventListener("pointerdown", onPointer)
+    return () => document.removeEventListener("pointerdown", onPointer)
+  }, [moveOpen])
 
   async function togglePublished() {
     setBusy(true)
@@ -148,7 +167,12 @@ export function PageCard({
         </div>
 
         {/* Actions secondaires */}
-        <div className="grid grid-cols-4 gap-1.5">
+        <div
+          className={cn(
+            "grid gap-1.5",
+            onMove && moveTargets.length > 0 ? "grid-cols-5" : "grid-cols-4"
+          )}
+        >
           <Button
             type="button"
             size="sm"
@@ -178,6 +202,60 @@ export function PageCard({
           >
             <Files className="h-4 w-4" />
           </Button>
+          {onMove && moveTargets.length > 0 && (
+            <div ref={moveRef} className="relative">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setMoveOpen((v) => !v)}
+                title="Déplacer vers un autre workspace"
+                className="w-full px-0"
+              >
+                <ArrowRightLeft className="h-4 w-4" />
+              </Button>
+              {moveOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full z-30 mt-1 w-56 origin-top-right overflow-hidden rounded-xl border border-border bg-white shadow-lift animate-fade-in"
+                >
+                  <div className="border-b border-border bg-cream/40 px-3 py-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Déplacer vers
+                    </p>
+                  </div>
+                  <ul className="max-h-60 overflow-y-auto p-1">
+                    {moveTargets.map((t) => (
+                      <li key={t.id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMoveOpen(false)
+                            onMove(t.id)
+                          }}
+                          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:bg-muted"
+                        >
+                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-forest text-cream text-xs font-bold">
+                            {t.name.charAt(0).toUpperCase()}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-semibold">
+                              {t.name}
+                            </span>
+                            {t.is_personal && (
+                              <span className="block text-[10px] text-muted-foreground">
+                                Personnel
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
           <Button
             type="button"
             size="sm"

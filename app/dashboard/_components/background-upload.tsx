@@ -1,10 +1,12 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { ImagePlus, Loader2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
+import { useFileDrop } from "@/lib/hooks/use-file-drop"
 import { ACCEPTED_IMAGE_TYPES, compressImage } from "@/lib/image-compression"
 import { createClient } from "@/lib/supabase/client"
 import { IMAGE_MAX_DIMENSION } from "@/lib/constants"
@@ -33,51 +35,65 @@ export function BackgroundUpload({
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
 
-  async function handleSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleFile = useCallback(
+    async (file: File) => {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Format image non supporté.")
+        return
+      }
+      setBusy(true)
+      try {
+        // Desktop : un poil plus grand car visible sur écrans wide.
+        const maxDim =
+          kind === "desktop"
+            ? Math.round(IMAGE_MAX_DIMENSION * 2)
+            : Math.round(IMAGE_MAX_DIMENSION * 1.5)
+        const maxMB = kind === "desktop" ? 2 : 1.5
+
+        const compressed = await compressImage(file, {
+          maxWidthOrHeight: maxDim,
+          maxSizeMB: maxMB
+        })
+
+        const supabase = createClient()
+        // Le 1er dossier doit être l'ID de l'uploader (auth.uid()) pour passer la
+        // RLS storage. Pas page.owner_id : un editor invité n'est pas owner_id.
+        const {
+          data: { user }
+        } = await supabase.auth.getUser()
+        if (!user) throw new Error("Pas connecté.")
+        const path = `${user.id}/${pageId}/background-${kind}-${Date.now()}.webp`
+        const { error: upErr } = await supabase.storage
+          .from("backgrounds")
+          .upload(path, compressed, {
+            upsert: true,
+            contentType: "image/webp"
+          })
+        if (upErr) throw new Error(upErr.message)
+
+        const {
+          data: { publicUrl }
+        } = supabase.storage.from("backgrounds").getPublicUrl(path)
+
+        await onChange(publicUrl)
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Échec de l'upload.")
+      } finally {
+        setBusy(false)
+      }
+    },
+    [kind, onChange, pageId]
+  )
+
+  const { isDragOver, dropProps } = useFileDrop({
+    accept: ["image/"],
+    onFile: handleFile
+  })
+
+  function handleSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ""
-    if (!file) return
-
-    setBusy(true)
-    try {
-      // Desktop : un poil plus grand car visible sur écrans wide.
-      const maxDim =
-        kind === "desktop"
-          ? Math.round(IMAGE_MAX_DIMENSION * 2)
-          : Math.round(IMAGE_MAX_DIMENSION * 1.5)
-      const maxMB = kind === "desktop" ? 2 : 1.5
-
-      const compressed = await compressImage(file, {
-        maxWidthOrHeight: maxDim,
-        maxSizeMB: maxMB
-      })
-
-      const supabase = createClient()
-      // Le 1er dossier doit être l'ID de l'uploader (auth.uid()) pour passer la
-      // RLS storage. Pas page.owner_id : un editor invité n'est pas owner_id.
-      const {
-        data: { user }
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("Pas connecté.")
-      const path = `${user.id}/${pageId}/background-${kind}-${Date.now()}.webp`
-      const { error: upErr } = await supabase.storage
-        .from("backgrounds")
-        .upload(path, compressed, {
-          upsert: true,
-          contentType: "image/webp"
-        })
-      if (upErr) throw new Error(upErr.message)
-
-      const {
-        data: { publicUrl }
-      } = supabase.storage.from("backgrounds").getPublicUrl(path)
-
-      await onChange(publicUrl)
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Échec de l'upload.")
-    } finally {
-      setBusy(false)
-    }
+    if (file) void handleFile(file)
   }
 
   async function handleRemove() {
@@ -101,7 +117,15 @@ export function BackgroundUpload({
         onChange={handleSelect}
       />
       {backgroundUrl ? (
-        <div className="overflow-hidden rounded-xl border border-input">
+        <div
+          {...dropProps}
+          className={cn(
+            "overflow-hidden rounded-xl border transition-colors",
+            isDragOver
+              ? "border-accent ring-2 ring-accent/40"
+              : "border-input"
+          )}
+        >
           <div className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -109,9 +133,15 @@ export function BackgroundUpload({
               alt=""
               className="h-32 w-full object-cover"
             />
-            {busy && (
-              <div className="absolute inset-0 grid place-items-center bg-black/50">
-                <Loader2 className="h-6 w-6 animate-spin text-white" />
+            {(busy || isDragOver) && (
+              <div className="absolute inset-0 grid place-items-center bg-black/50 text-white">
+                {busy ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  <span className="text-sm font-semibold">
+                    Relâche pour remplacer
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -142,14 +172,24 @@ export function BackgroundUpload({
           type="button"
           disabled={busy}
           onClick={() => inputRef.current?.click()}
-          className="flex h-28 w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-input bg-muted/30 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+          {...dropProps}
+          className={cn(
+            "flex h-28 w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed text-sm font-medium transition-colors disabled:opacity-50",
+            isDragOver
+              ? "border-accent bg-accent/10 text-accent"
+              : "border-input bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
         >
           {busy ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
             <ImagePlus className="h-5 w-5" />
           )}
-          Téléverser une image
+          <span>
+            {isDragOver
+              ? "Relâche pour téléverser"
+              : "Téléverser ou glisser une image"}
+          </span>
         </button>
       )}
     </div>

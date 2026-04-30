@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useTransition } from "react"
 import { Check, ChevronsUpDown, Plus, Settings } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
@@ -18,7 +17,6 @@ type Props = {
 }
 
 export function WorkspaceSwitcher({ current, workspaces }: Props) {
-  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState("")
@@ -45,11 +43,10 @@ export function WorkspaceSwitcher({ current, workspaces }: Props) {
         return
       }
       setOpen(false)
-      // Navigue vers la home du workspace (liste des pages). Si on était sur
-      // /dashboard/pages/[id] d'une page de l'ancien workspace, ça donnerait
-      // 404 après le switch ; on évite en redirigeant vers /dashboard.
-      router.push("/dashboard")
-      router.refresh()
+      // Reload complet pour garantir que tous les Server Components
+      // ré-évaluent le cookie workspace (router.refresh ne suffit pas
+      // toujours après écriture de cookie côté action).
+      window.location.assign("/dashboard")
     })
   }
 
@@ -64,11 +61,10 @@ export function WorkspaceSwitcher({ current, workspaces }: Props) {
     toast.success("Workspace créé")
     setName("")
     setCreating(false)
-    // Switch immédiat sur le nouveau
+    // Switch immédiat sur le nouveau + reload complet
     await switchWorkspaceAction(result.data.id)
     setOpen(false)
-    router.push("/dashboard")
-    router.refresh()
+    window.location.assign("/dashboard")
   }
 
   return (

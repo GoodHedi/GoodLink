@@ -1,9 +1,11 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { Camera, Loader2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import { useFileDrop } from "@/lib/hooks/use-file-drop"
 import { ACCEPTED_IMAGE_TYPES, compressImage } from "@/lib/image-compression"
 import { createClient } from "@/lib/supabase/client"
 
@@ -25,40 +27,54 @@ export function AvatarUpload({
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
 
-  async function handleSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleFile = useCallback(
+    async (file: File) => {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Format image non supporté.")
+        return
+      }
+      setBusy(true)
+      try {
+        const compressed = await compressImage(file)
+        const supabase = createClient()
+        // Le 1er dossier doit être l'ID de l'uploader (auth.uid()) pour passer la
+        // RLS storage. Pas page.owner_id : un editor invité n'est pas owner_id.
+        const {
+          data: { user }
+        } = await supabase.auth.getUser()
+        if (!user) throw new Error("Pas connecté.")
+        const path = `${user.id}/${pageId}/avatar-${Date.now()}.webp`
+        const { error: upErr } = await supabase.storage
+          .from("avatars")
+          .upload(path, compressed, {
+            upsert: true,
+            contentType: "image/webp"
+          })
+        if (upErr) throw new Error(upErr.message)
+
+        const {
+          data: { publicUrl }
+        } = supabase.storage.from("avatars").getPublicUrl(path)
+
+        await onChange(publicUrl)
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Échec de l'upload.")
+      } finally {
+        setBusy(false)
+      }
+    },
+    [onChange, pageId]
+  )
+
+  const { isDragOver, dropProps } = useFileDrop({
+    accept: ["image/"],
+    onFile: handleFile
+  })
+
+  function handleSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ""
-    if (!file) return
-
-    setBusy(true)
-    try {
-      const compressed = await compressImage(file)
-      const supabase = createClient()
-      // Le 1er dossier doit être l'ID de l'uploader (auth.uid()) pour passer la
-      // RLS storage. Pas page.owner_id : un editor invité n'est pas owner_id.
-      const {
-        data: { user }
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("Pas connecté.")
-      const path = `${user.id}/${pageId}/avatar-${Date.now()}.webp`
-      const { error: upErr } = await supabase.storage
-        .from("avatars")
-        .upload(path, compressed, {
-          upsert: true,
-          contentType: "image/webp"
-        })
-      if (upErr) throw new Error(upErr.message)
-
-      const {
-        data: { publicUrl }
-      } = supabase.storage.from("avatars").getPublicUrl(path)
-
-      await onChange(publicUrl)
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Échec de l'upload.")
-    } finally {
-      setBusy(false)
-    }
+    if (file) void handleFile(file)
   }
 
   async function handleRemove() {
@@ -74,7 +90,16 @@ export function AvatarUpload({
 
   return (
     <div className="flex items-center gap-4">
-      <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        {...dropProps}
+        className={cn(
+          "relative shrink-0 rounded-full transition-all",
+          isDragOver && "ring-4 ring-accent ring-offset-2"
+        )}
+        aria-label="Changer l'avatar"
+      >
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -87,12 +112,16 @@ export function AvatarUpload({
             {initial}
           </div>
         )}
-        {busy && (
-          <div className="absolute inset-0 grid place-items-center rounded-full bg-black/40">
-            <Loader2 className="h-5 w-5 animate-spin text-white" />
+        {(busy || isDragOver) && (
+          <div className="absolute inset-0 grid place-items-center rounded-full bg-black/45 text-white">
+            {busy ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Camera className="h-5 w-5" />
+            )}
           </div>
         )}
-      </div>
+      </button>
 
       <div className="flex flex-col gap-2">
         <input
@@ -124,6 +153,9 @@ export function AvatarUpload({
             Retirer
           </Button>
         )}
+        <p className="text-[10px] text-muted-foreground">
+          Tu peux aussi glisser une image sur l&apos;avatar.
+        </p>
       </div>
     </div>
   )

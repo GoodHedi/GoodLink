@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { PagesGrid } from "./_components/pages-grid"
 import { PAGE_LIMIT_FREE } from "@/lib/constants"
-import { getCurrentWorkspaceId } from "@/lib/workspace"
+import { getCurrentWorkspaceId, listMyWorkspaces } from "@/lib/workspace"
 
 export const metadata: Metadata = { title: "Mes pages" }
 export const dynamic = "force-dynamic"
@@ -34,6 +34,16 @@ export default async function DashboardPage() {
 
   const list = pages ?? []
 
+  // Workspaces où l'utilisateur peut déplacer ses pages (owner ou editor).
+  const allWorkspaces = await listMyWorkspaces(user.id)
+  const moveTargets = allWorkspaces
+    .filter((w) => w.id !== workspaceId && w.role !== "viewer")
+    .map((w) => ({
+      id: w.id,
+      name: w.name,
+      is_personal: w.is_personal
+    }))
+
   // Vues par page (count head:true → 1 query par page mais payload léger).
   const viewCountsEntries = await Promise.all(
     list.map(async (p) => {
@@ -63,6 +73,7 @@ export default async function DashboardPage() {
         workspaceId={workspaceId}
         pages={list}
         viewCounts={viewCounts}
+        moveTargets={moveTargets}
       />
     </div>
   )

@@ -160,6 +160,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          workspace_id?: string
           username?: string
           display_name?: string
           bio?: string | null

@@ -9,23 +9,32 @@ import { PAGE_LIMIT_FREE } from "@/lib/constants"
 import {
   createPageAction,
   deletePageAction,
-  duplicatePageAction
+  duplicatePageAction,
+  movePageToWorkspaceAction
 } from "../actions"
 import { PageCard } from "./page-card"
 import { NewPageForm } from "./new-page-form"
 import type { Page } from "@/types/database"
 import type { CreatePageInput } from "@/lib/validations/page"
 
+export type MoveTarget = {
+  id: string
+  name: string
+  is_personal: boolean
+}
+
 type Props = {
   workspaceId: string
   pages: Page[]
   viewCounts?: Record<string, number>
+  moveTargets?: MoveTarget[]
 }
 
 export function PagesGrid({
   workspaceId,
   pages: initialPages,
-  viewCounts = {}
+  viewCounts = {},
+  moveTargets = []
 }: Props) {
   const router = useRouter()
   const [pages, setPages] = useState<Page[]>(initialPages)
@@ -71,6 +80,22 @@ export function PagesGrid({
     toast.success(`Copie créée : @${result.data.username}`)
   }
 
+  async function handleMove(pageId: string, targetWorkspaceId: string) {
+    const previous = pages
+    // Optimistic : retire la page du workspace courant
+    setPages(previous.filter((p) => p.id !== pageId))
+    const result = await movePageToWorkspaceAction(pageId, targetWorkspaceId)
+    if (!result.ok) {
+      toast.error(result.error)
+      setPages(previous)
+      return
+    }
+    const target = moveTargets.find((m) => m.id === targetWorkspaceId)
+    toast.success(
+      target ? `Page déplacée vers « ${target.name} »` : "Page déplacée"
+    )
+  }
+
   if (pages.length === 0 && !showCreate) {
     return (
       <div className="flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-border bg-white py-16 px-6 text-center">
@@ -109,6 +134,8 @@ export function PagesGrid({
             viewCount={viewCounts[page.id] ?? 0}
             onDelete={() => handleDelete(page.id)}
             onDuplicate={() => handleDuplicate(page.id)}
+            onMove={(targetId) => handleMove(page.id, targetId)}
+            moveTargets={moveTargets}
             atLimit={atLimit}
           />
         ))}

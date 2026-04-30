@@ -295,6 +295,68 @@ export async function duplicatePageAction(
   return { ok: true, data: newPage }
 }
 
+/**
+ * Déplace une page d'un workspace à un autre. Le caller doit être owner ou
+ * editor sur les deux workspaces (source via ownsPage, cible via canEditWorkspace).
+ * Quota par workspace cible vérifié.
+ */
+export async function movePageToWorkspaceAction(
+  pageId: string,
+  targetWorkspaceId: string
+): Promise<ActionResult> {
+  const owner = await getOwner()
+  if (!owner) return UNAUTHENTICATED as ActionResult
+
+  const ownership = await ownsPage(owner.supabase, owner.userId, pageId)
+  if (!ownership.ok) {
+    return { ok: false, error: "Page introuvable." }
+  }
+  if (ownership.workspaceId === targetWorkspaceId) {
+    return { ok: false, error: "La page est déjà dans ce workspace." }
+  }
+
+  const canTarget = await canEditWorkspace(
+    owner.supabase,
+    owner.userId,
+    targetWorkspaceId
+  )
+  if (!canTarget) {
+    return {
+      ok: false,
+      error: "Tu n'es pas éditeur sur le workspace cible."
+    }
+  }
+
+  // Quota par workspace cible
+  const { count } = await owner.supabase
+    .from("pages")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", targetWorkspaceId)
+  if ((count ?? 0) >= PAGE_LIMIT_FREE) {
+    return {
+      ok: false,
+      error: `Limite de ${PAGE_LIMIT_FREE} pages atteinte sur le workspace cible.`
+    }
+  }
+
+  const { data: updated, error } = await owner.supabase
+    .from("pages")
+    .update({ workspace_id: targetWorkspaceId })
+    .eq("id", pageId)
+    .select("id")
+
+  if (error || !updated || updated.length === 0) {
+    return {
+      ok: false,
+      error: "Déplacement bloqué (droits insuffisants ?)."
+    }
+  }
+
+  revalidatePath("/dashboard")
+  revalidatePath(`/${ownership.username}`)
+  return { ok: true, data: undefined }
+}
+
 export async function deletePageAction(
   pageId: string
 ): Promise<ActionResult> {
