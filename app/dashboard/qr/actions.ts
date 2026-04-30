@@ -83,7 +83,10 @@ export async function createQrAction(
       target_url: parsed.data.target_url,
       fg_color: parsed.data.fg_color,
       bg_color: parsed.data.bg_color,
-      logo_url: parsed.data.logo_url ?? null
+      logo_url: parsed.data.logo_url ?? null,
+      // Tous les QR créés depuis maintenant sont trackés via /q/<id>.
+      // Les anciens (tracked = false par défaut) gardent target_url en direct.
+      tracked: true
     })
     .select()
     .single()

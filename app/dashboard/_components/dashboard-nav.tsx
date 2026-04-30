@@ -8,6 +8,11 @@ const TABS = [
   { href: "/dashboard", label: "Pages", matches: ["/dashboard"] },
   { href: "/dashboard/qr", label: "QR codes", matches: ["/dashboard/qr"] },
   {
+    href: "/dashboard/stats",
+    label: "Stats",
+    matches: ["/dashboard/stats"]
+  },
+  {
     href: "/dashboard/settings",
     label: "Paramètres",
     matches: ["/dashboard/settings"]
@@ -22,6 +27,8 @@ export function DashboardNav() {
       {TABS.map((tab) => {
         const active = tab.matches.some((prefix) => {
           if (prefix === "/dashboard") {
+            // "Pages" actif uniquement sur /dashboard et /dashboard/pages/*
+            // (pas sur /dashboard/qr, /dashboard/stats, /dashboard/settings)
             return (
               pathname === "/dashboard" ||
               pathname.startsWith("/dashboard/pages")

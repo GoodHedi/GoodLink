@@ -248,6 +248,30 @@ export type Database = {
           }
         ]
       }
+      qr_scans: {
+        Row: {
+          id: number
+          qr_id: string
+          scanned_at: string
+        }
+        Insert: {
+          id?: number
+          qr_id: string
+          scanned_at?: string
+        }
+        Update: {
+          scanned_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_scans_qr_id_fkey"
+            columns: ["qr_id"]
+            isOneToOne: false
+            referencedRelation: "qr_codes"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       link_clicks: {
         Row: {
           id: number
@@ -282,6 +306,7 @@ export type Database = {
           fg_color: string
           bg_color: string
           logo_url: string | null
+          tracked: boolean
           created_at: string
         }
         Insert: {
@@ -293,6 +318,7 @@ export type Database = {
           fg_color?: string
           bg_color?: string
           logo_url?: string | null
+          tracked?: boolean
           created_at?: string
         }
         Update: {
@@ -301,6 +327,7 @@ export type Database = {
           fg_color?: string
           bg_color?: string
           logo_url?: string | null
+          tracked?: boolean
         }
         Relationships: [
           {
@@ -340,3 +367,4 @@ export type LinkUpdate = Database["public"]["Tables"]["links"]["Update"]
 export type QrCode = Database["public"]["Tables"]["qr_codes"]["Row"]
 export type QrCodeInsert = Database["public"]["Tables"]["qr_codes"]["Insert"]
 export type QrCodeUpdate = Database["public"]["Tables"]["qr_codes"]["Update"]
+export type QrScan = Database["public"]["Tables"]["qr_scans"]["Row"]

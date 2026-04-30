@@ -19,9 +19,15 @@ type Props = {
   workspaceId: string
   ownerId: string
   initialQrs: QrCode[]
+  scanCounts?: Record<string, number>
 }
 
-export function QrList({ workspaceId, ownerId, initialQrs }: Props) {
+export function QrList({
+  workspaceId,
+  ownerId,
+  initialQrs,
+  scanCounts = {}
+}: Props) {
   const [qrs, setQrs] = useState<QrCode[]>(initialQrs)
   const [mode, setMode] = useState<
     | { kind: "list" }
@@ -133,6 +139,7 @@ export function QrList({ workspaceId, ownerId, initialQrs }: Props) {
           <QrCard
             key={qr.id}
             qr={qr}
+            scanCount={scanCounts[qr.id] ?? 0}
             onEdit={() => setMode({ kind: "edit", qr })}
             onDelete={() => handleDelete(qr.id)}
           />

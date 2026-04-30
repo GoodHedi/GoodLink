@@ -34,6 +34,20 @@ export default async function QrPage() {
 
   const list = qrs ?? []
 
+  // Compteurs de scans par QR (1 query par QR, count head)
+  const scanEntries = await Promise.all(
+    list
+      .filter((q) => q.tracked)
+      .map(async (q) => {
+        const { count } = await supabase
+          .from("qr_scans")
+          .select("id", { count: "exact", head: true })
+          .eq("qr_id", q.id)
+        return [q.id, count ?? 0] as const
+      })
+  )
+  const scanCounts: Record<string, number> = Object.fromEntries(scanEntries)
+
   return (
     <div className="container py-8 lg:py-12">
       <div className="mb-8">
@@ -49,6 +63,7 @@ export default async function QrPage() {
         workspaceId={workspaceId}
         ownerId={user.id}
         initialQrs={list}
+        scanCounts={scanCounts}
       />
     </div>
   )
