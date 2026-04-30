@@ -88,10 +88,11 @@ export function PageCard({
   }
 
   return (
-    <article className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-shadow hover:shadow-lift">
-      {/* Preview header */}
+    <article className="group relative rounded-2xl border border-border bg-card shadow-soft transition-shadow hover:shadow-lift">
+      {/* Preview header (overflow-hidden ici pour clipper l'image,
+          pas sur l'article : laisser les dropdowns sortir). */}
       <div
-        className="relative h-24"
+        className="relative h-24 overflow-hidden rounded-t-2xl"
         style={{
           backgroundColor: page.background_color,
           backgroundImage: page.background_url
@@ -114,22 +115,23 @@ export function PageCard({
             {viewCount.toLocaleString("fr-FR")}
           </span>
         )}
+      </div>
 
-        {/* Avatar overlap */}
-        <div className="absolute -bottom-7 left-4">
-          {page.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={page.avatar_url}
-              alt={page.display_name}
-              className="h-14 w-14 rounded-full object-cover ring-4 ring-card"
-            />
-          ) : (
-            <div className="grid h-14 w-14 place-items-center rounded-full bg-secondary text-lg font-bold text-forest ring-4 ring-card">
-              {(page.display_name || page.username).charAt(0).toUpperCase()}
-            </div>
-          )}
-        </div>
+      {/* Avatar overlap : sorti de la preview header pour ne pas être clippé
+          par overflow-hidden, positionné par rapport à l'article. */}
+      <div className="absolute left-4 top-[68px]">
+        {page.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={page.avatar_url}
+            alt={page.display_name}
+            className="h-14 w-14 rounded-full object-cover ring-4 ring-card"
+          />
+        ) : (
+          <div className="grid h-14 w-14 place-items-center rounded-full bg-secondary text-lg font-bold text-forest ring-4 ring-card">
+            {(page.display_name || page.username).charAt(0).toUpperCase()}
+          </div>
+        )}
       </div>
 
       <div className="space-y-3 p-4 pt-9">
@@ -217,7 +219,7 @@ export function PageCard({
               {moveOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 top-full z-30 mt-1 w-56 origin-top-right overflow-hidden rounded-xl border border-border bg-white shadow-lift animate-fade-in"
+                  className="absolute right-0 top-full z-50 mt-1 w-56 origin-top-right overflow-hidden rounded-xl border border-border bg-white shadow-lift animate-fade-in"
                 >
                   <div className="border-b border-border bg-cream/40 px-3 py-2">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">

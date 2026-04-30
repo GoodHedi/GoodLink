@@ -89,7 +89,7 @@ export function WorkspaceSwitcher({ current, workspaces }: Props) {
       {open && (
         <div
           role="menu"
-          className="absolute left-0 top-full z-40 mt-2 w-72 origin-top-left overflow-hidden rounded-xl border border-border bg-white shadow-lift animate-fade-in"
+          className="absolute left-0 top-full z-50 mt-2 w-72 origin-top-left overflow-hidden rounded-xl border border-border bg-white shadow-lift animate-fade-in"
         >
           <div className="border-b border-border bg-cream/40 px-3 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
