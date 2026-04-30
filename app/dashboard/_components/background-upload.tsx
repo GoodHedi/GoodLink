@@ -10,6 +10,7 @@ import { useFileDrop } from "@/lib/hooks/use-file-drop"
 import { ACCEPTED_IMAGE_TYPES, compressImage } from "@/lib/image-compression"
 import { createClient } from "@/lib/supabase/client"
 import { IMAGE_MAX_DIMENSION } from "@/lib/constants"
+import { isUuid } from "@/lib/uuid"
 
 type Kind = "mobile" | "desktop"
 
@@ -39,6 +40,10 @@ export function BackgroundUpload({
     async (file: File) => {
       if (!file.type.startsWith("image/")) {
         toast.error("Format image non supporté.")
+        return
+      }
+      if (!isUuid(pageId)) {
+        toast.error("Identifiant de page invalide.")
         return
       }
       setBusy(true)

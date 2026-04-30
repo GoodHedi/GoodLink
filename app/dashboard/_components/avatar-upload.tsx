@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { useFileDrop } from "@/lib/hooks/use-file-drop"
 import { ACCEPTED_IMAGE_TYPES, compressImage } from "@/lib/image-compression"
 import { createClient } from "@/lib/supabase/client"
+import { isUuid } from "@/lib/uuid"
 
 type Props = {
   pageId: string
@@ -31,6 +32,10 @@ export function AvatarUpload({
     async (file: File) => {
       if (!file.type.startsWith("image/")) {
         toast.error("Format image non supporté.")
+        return
+      }
+      if (!isUuid(pageId)) {
+        toast.error("Identifiant de page invalide.")
         return
       }
       setBusy(true)

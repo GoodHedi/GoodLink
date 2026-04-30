@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { useFileDrop } from "@/lib/hooks/use-file-drop"
 import { createClient } from "@/lib/supabase/client"
+import { isUuid } from "@/lib/uuid"
 
 const MAX_BYTES = 1 * 1024 * 1024 // 1 MB strict
 const MAX_RECORD_SECONDS = 60 // garde-fou pour ne pas dépasser 1 MB en webm/opus
@@ -85,6 +86,13 @@ export function AudioUpload({ pageId, audioUrl, onChange }: Props) {
       const safeType = safeAudioContentType(contentType, ext)
       if (!safeType) {
         toast.error("Format audio non supporté.")
+        return
+      }
+
+      // Garde-fou : pageId doit être un UUID propre avant d'être concaténé
+      // dans le path storage (anti path injection / corruption).
+      if (!isUuid(pageId)) {
+        toast.error("Identifiant de page invalide.")
         return
       }
 

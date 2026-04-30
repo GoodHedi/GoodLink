@@ -37,6 +37,33 @@ async function isOwnerOf(
   return data?.role === "owner"
 }
 
+/**
+ * Renvoie true si l'utilisateur ciblé est le DERNIER owner du workspace.
+ * Utilisé pour empêcher les opérations qui laisseraient le workspace
+ * sans aucun owner (impossible d'inviter, de rename, etc).
+ */
+async function isLastOwner(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  workspaceId: string,
+  userId: string
+): Promise<boolean> {
+  const { data: target } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", userId)
+    .maybeSingle()
+  if (target?.role !== "owner") return false
+
+  const { count } = await supabase
+    .from("workspace_members")
+    .select("user_id", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .eq("role", "owner")
+
+  return (count ?? 0) <= 1
+}
+
 // --- Schemas ---
 const inviteSchema = z.object({
   email: z.string().trim().toLowerCase().email("Email invalide."),
@@ -134,6 +161,14 @@ export async function removeMemberAction(
     return { ok: false, error: "Utilise « Quitter le workspace »." }
   }
 
+  // Empêche de retirer le dernier owner (le workspace deviendrait orphelin).
+  if (await isLastOwner(owner.supabase, workspaceId, memberUserId)) {
+    return {
+      ok: false,
+      error: "Impossible de retirer le dernier owner du workspace."
+    }
+  }
+
   const { error } = await owner.supabase
     .from("workspace_members")
     .delete()
@@ -161,6 +196,15 @@ export async function leaveWorkspaceAction(
     return {
       ok: false,
       error: "Tu ne peux pas quitter ton workspace personnel."
+    }
+  }
+
+  // Empêche le dernier owner de quitter (workspace orphelin).
+  if (await isLastOwner(owner.supabase, workspaceId, owner.userId)) {
+    return {
+      ok: false,
+      error:
+        "Tu es le dernier owner. Promeus quelqu'un avant de quitter, ou supprime le workspace."
     }
   }
 
