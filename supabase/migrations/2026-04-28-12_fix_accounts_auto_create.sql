@@ -53,13 +53,15 @@ begin
   end if;
 
   -- Garantir l'unicité : ajout de suffixe si collision
+  -- Format max : ^[a-z0-9-]{3,20}$ → on a max 20 chars.
+  -- 17 chars + "-" + 2 chars (jusqu'à v_attempt=99) = 20.
   v_candidate := v_username;
   loop
     exit when not exists (
       select 1 from public.accounts where username = v_candidate
     ) or v_attempt >= 50;
     v_attempt := v_attempt + 1;
-    v_candidate := substring(v_username, 1, 17) || '-' || v_attempt;
+    v_candidate := substring(v_username, 1, 17) || '-' || v_attempt::text;
   end loop;
 
   insert into public.accounts (id, username, age)
@@ -82,10 +84,11 @@ create trigger on_auth_user_created
 -- avec un username dérivé. Tier par défaut = 'pro' (grand-fathering :
 -- ces comptes existaient avant le système de tiers).
 
+-- Format username : ^[a-z0-9-]{3,20}$ → on a max 20 chars.
+-- Ici : 15 chars d'email + "-" + 4 chars d'id = 20.
 insert into public.accounts (id, username, tier)
 select
   u.id,
-  -- Génère un username depuis l'email, en respectant le format
   case
     when char_length(
       regexp_replace(
@@ -98,7 +101,7 @@ select
         lower(coalesce(split_part(u.email, '@', 1), 'user')),
         '[^a-z0-9-]', '', 'g'
       ),
-      1, 17
+      1, 15
     ) || '-' || substring(u.id::text, 1, 4)
     else 'user-' || substring(u.id::text, 1, 8)
   end as username,
