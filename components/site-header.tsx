@@ -32,6 +32,7 @@ export function SiteHeader() {
           <NavLink href="#features">Fonctionnalités</NavLink>
           <NavLink href="#how">Comment ça marche</NavLink>
           <NavLink href="#qr">QR codes</NavLink>
+          <NavLink href="#pricing">Plans</NavLink>
         </nav>
 
         <div className="flex items-center gap-1.5">

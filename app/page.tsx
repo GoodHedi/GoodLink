@@ -2,6 +2,7 @@ import Link from "next/link"
 import {
   ArrowUpRight,
   BarChart3,
+  Check,
   Layers,
   Layout,
   QrCode,
@@ -13,6 +14,9 @@ import { PhoneFrame } from "@/components/phone-frame"
 import { PublicProfile } from "@/components/public-profile"
 import { SiteHeader } from "@/components/site-header"
 import { ClaimForm } from "./_components/claim-form"
+import { createClient } from "@/lib/supabase/server"
+import { PLAN_PRICE_EUR_MONTH } from "@/lib/stripe"
+import { CheckoutButton } from "./pricing/_components/checkout-button"
 
 // --- Profil démo affiché dans le mockup téléphone ---
 const DEMO_PROFILE = {
@@ -130,7 +134,16 @@ const MARQUEE_WORDS = [
   "Sans tracker"
 ]
 
-export default function HomePage() {
+export const dynamic = "force-dynamic"
+
+export default async function HomePage() {
+  // Pour décider entre "Passer Pro" (logged in) et "Créer un compte" (anon).
+  const supabase = await createClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  const isLoggedIn = !!user
+
   return (
     <div className="overflow-x-hidden bg-cream">
       <SiteHeader />
@@ -368,6 +381,120 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ============================== PLANS ============================== */}
+      <section
+        id="pricing"
+        className="relative bg-cream py-24 sm:py-32"
+      >
+        <div className="blob -top-20 left-1/2 h-[420px] w-[420px] -translate-x-1/2 bg-accent/15 animate-blob" />
+        <div className="container relative">
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+              Nos plans
+            </span>
+            <h2 className="mt-4 text-4xl font-extrabold tracking-tight text-forest sm:text-5xl">
+              Choisis ton plan
+            </h2>
+            <p className="mt-4 text-base text-forest/65">
+              Commence gratuit. Passe Pro quand tu en as besoin. Annule à
+              tout moment, sans engagement.
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-6 lg:grid-cols-3 lg:gap-5">
+            {/* Visiteur */}
+            <PricingCard
+              name="Visiteur"
+              tagline="Pour découvrir"
+              price={0}
+              features={[
+                "1 page GoodLink",
+                "1 QR code basique",
+                "Liens illimités",
+                "Couleur de fond unie"
+              ]}
+              cta={
+                isLoggedIn ? (
+                  <Link
+                    href="/dashboard"
+                    className="block w-full rounded-full border-2 border-forest/15 px-5 py-3 text-center text-sm font-semibold text-forest transition-colors hover:bg-forest hover:text-cream"
+                  >
+                    Aller au dashboard
+                  </Link>
+                ) : (
+                  <Link
+                    href="/signup"
+                    className="block w-full rounded-full border-2 border-forest/15 px-5 py-3 text-center text-sm font-semibold text-forest transition-colors hover:bg-forest hover:text-cream"
+                  >
+                    Créer un compte
+                  </Link>
+                )
+              }
+            />
+
+            {/* Pro — recommandé */}
+            <PricingCard
+              name="Pro"
+              tagline="Pour les créateurs"
+              price={PLAN_PRICE_EUR_MONTH.pro}
+              features={[
+                "20 pages GoodLink",
+                "50 QR codes trackés (scans)",
+                "Avatar, fonds image, audio",
+                "Templates, polices, couleurs",
+                "Workspaces collaboratifs",
+                "Partage de cartes",
+                "Statistiques détaillées"
+              ]}
+              highlighted
+              cta={
+                isLoggedIn ? (
+                  <CheckoutButton plan="pro" />
+                ) : (
+                  <Link
+                    href="/signup?plan=pro"
+                    className="group block w-full rounded-full bg-accent px-5 py-3 text-center text-sm font-bold text-accent-foreground shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift"
+                  >
+                    Commencer Pro
+                  </Link>
+                )
+              }
+            />
+
+            {/* Agence */}
+            <PricingCard
+              name="Agence"
+              tagline="Pour les pros multi-clients"
+              price={PLAN_PRICE_EUR_MONTH.agency}
+              features={[
+                "Tout le plan Pro",
+                "100 pages, 200 QR codes",
+                "Codes pour gérer tes clients",
+                "Tableau de bord agence",
+                "Personnalisation à la demande"
+              ]}
+              cta={
+                isLoggedIn ? (
+                  <CheckoutButton plan="agency" />
+                ) : (
+                  <Link
+                    href="/signup?plan=agency"
+                    className="block w-full rounded-full bg-forest px-5 py-3 text-center text-sm font-bold text-cream shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift"
+                  >
+                    Commencer Agence
+                  </Link>
+                )
+              }
+            />
+          </div>
+
+          <p className="mt-10 text-center text-xs text-forest/50">
+            Tous les prix en € HT par mois. Tu peux changer ou annuler ton
+            plan depuis ton dashboard à tout moment.
+          </p>
+        </div>
+      </section>
+
       {/* ============================== CTA final ============================== */}
       <section className="relative bg-cream py-24 sm:py-32">
         <div className="container">
@@ -414,9 +541,9 @@ export default function HomePage() {
               <a href="#qr" className="hover:text-cream">
                 QR codes
               </a>
-              <Link href="/pricing" className="hover:text-cream">
-                Tarifs
-              </Link>
+              <a href="#pricing" className="hover:text-cream">
+                Plans
+              </a>
               <Link href="/login" className="hover:text-cream">
                 Connexion
               </Link>
@@ -472,6 +599,69 @@ function QrSample({
           />
         )
       })}
+    </div>
+  )
+}
+
+function PricingCard({
+  name,
+  tagline,
+  price,
+  features,
+  cta,
+  highlighted = false
+}: {
+  name: string
+  tagline: string
+  price: number
+  features: string[]
+  cta: React.ReactNode
+  highlighted?: boolean
+}) {
+  return (
+    <div
+      className={`relative flex flex-col rounded-[2rem] border bg-white p-8 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-lift ${
+        highlighted
+          ? "border-accent ring-2 ring-accent/40 lg:scale-[1.04]"
+          : "border-forest/10"
+      }`}
+    >
+      {highlighted && (
+        <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full bg-accent px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-accent-foreground shadow-soft">
+          <Sparkles className="h-3 w-3" />
+          Recommandé
+        </span>
+      )}
+
+      <div>
+        <h3 className="text-xl font-extrabold tracking-tight text-forest">
+          {name}
+        </h3>
+        <p className="mt-1 text-xs text-forest/55">{tagline}</p>
+
+        <div className="mt-6 flex items-baseline gap-1">
+          <span className="text-5xl font-extrabold tracking-tight text-forest">
+            {price === 0 ? "0 €" : `${price} €`}
+          </span>
+          <span className="text-sm text-forest/55">/ mois</span>
+        </div>
+      </div>
+
+      <ul className="mt-7 flex-1 space-y-2.5">
+        {features.map((f) => (
+          <li
+            key={f}
+            className="flex items-start gap-2 text-sm text-forest/85"
+          >
+            <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full bg-accent/15">
+              <Check className="h-3 w-3 text-accent" />
+            </span>
+            <span>{f}</span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-8">{cta}</div>
     </div>
   )
 }
