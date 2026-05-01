@@ -14,6 +14,11 @@ export type WorkspaceSummary = {
 /**
  * Liste tous les workspaces dont l'utilisateur courant est membre,
  * avec son rôle. Utilisé par le switcher du layout dashboard.
+ *
+ * Règle : on EXCLUT les workspaces is_personal=true qui ne sont pas
+ * créés par l'utilisateur courant. Sinon, si quelqu'un avait par
+ * erreur invité dans son Personnel, on se retrouvait avec deux entrées
+ * « Personnel » indistinctes dans le switcher.
  */
 export async function listMyWorkspaces(
   userId: string
@@ -31,12 +36,17 @@ export async function listMyWorkspaces(
   const ids = memberships.map((m) => m.workspace_id)
   const { data: workspaces } = await supabase
     .from("workspaces")
-    .select("id, name, is_personal")
+    .select("id, name, is_personal, created_by")
     .in("id", ids)
 
   const wsById = new Map<
     string,
-    { id: string; name: string; is_personal: boolean }
+    {
+      id: string
+      name: string
+      is_personal: boolean
+      created_by: string
+    }
   >()
   for (const w of workspaces ?? []) {
     wsById.set(w.id, w)
@@ -46,6 +56,8 @@ export async function listMyWorkspaces(
     .map((m) => {
       const ws = wsById.get(m.workspace_id)
       if (!ws) return null
+      // Exclure les Personnels qui ne sont PAS les nôtres
+      if (ws.is_personal && ws.created_by !== userId) return null
       return {
         id: ws.id,
         name: ws.name,
@@ -57,8 +69,15 @@ export async function listMyWorkspaces(
 }
 
 /**
- * Récupère le workspace "actif" : depuis cookie si valide, sinon
- * fallback sur le workspace personnel de l'utilisateur.
+ * Récupère le workspace "actif" :
+ *   1. Si cookie pointe sur un workspace toujours valide ET visible (cf.
+ *      filtre listMyWorkspaces) → retourne le cookie.
+ *   2. Sinon → fallback sur le workspace personnel de l'utilisateur.
+ *
+ * Les workspaces "Personnel" d'autres utilisateurs sont donc ignorés
+ * même si l'utilisateur est techniquement membre — ce qui évite de se
+ * retrouver bloqué sur un workspace vide qu'on ne savait pas qu'on
+ * avait rejoint.
  */
 export async function getCurrentWorkspaceId(
   userId: string
@@ -68,19 +87,30 @@ export async function getCurrentWorkspaceId(
 
   const supabase = await createClient()
 
-  // Vérifie que le cookie pointe vers un workspace dont l'utilisateur est
-  // toujours membre.
   if (cookieValue) {
-    const { data } = await supabase
-      .from("workspace_members")
-      .select("workspace_id")
-      .eq("user_id", userId)
-      .eq("workspace_id", cookieValue)
+    // Le workspace doit exister, l'utilisateur doit être membre, ET le
+    // workspace ne doit pas être un Personnel d'autrui.
+    const { data: ws } = await supabase
+      .from("workspaces")
+      .select("id, is_personal, created_by")
+      .eq("id", cookieValue)
       .maybeSingle()
-    if (data) return cookieValue
+
+    if (ws) {
+      const isOtherPersonal = ws.is_personal && ws.created_by !== userId
+      if (!isOtherPersonal) {
+        const { data: m } = await supabase
+          .from("workspace_members")
+          .select("workspace_id")
+          .eq("user_id", userId)
+          .eq("workspace_id", cookieValue)
+          .maybeSingle()
+        if (m) return cookieValue
+      }
+    }
   }
 
-  // Fallback : workspace personnel
+  // Fallback : workspace personnel de l'utilisateur
   const { data: personal } = await supabase
     .from("workspaces")
     .select("id")
