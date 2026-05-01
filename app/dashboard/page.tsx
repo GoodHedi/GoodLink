@@ -27,11 +27,23 @@ export default async function DashboardPage() {
     )
   }
 
-  const { data: pages } = await supabase
+  const { data: pages, error: pagesErr } = await supabase
     .from("pages")
     .select("*")
     .eq("workspace_id", workspaceId)
     .order("created_at", { ascending: true })
+
+  if (pagesErr) {
+    // Log côté Vercel (visible dans les logs functions). Aide à
+    // diagnostiquer les RLS / network issues quand le dashboard est
+    // mystérieusement vide.
+    console.error(
+      "[dashboard] pages query failed",
+      "userId=", user.id,
+      "workspaceId=", workspaceId,
+      "error=", pagesErr.message
+    )
+  }
 
   const list = pages ?? []
 

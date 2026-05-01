@@ -100,6 +100,12 @@ export function WorkspaceSwitcher({ current, workspaces }: Props) {
           <ul className="max-h-72 overflow-y-auto p-1">
             {workspaces.map((w) => {
               const active = w.id === current?.id
+              // Pour distinguer "mon Personnel" du "Personnel d'un ami"
+              // sans qu'il y ait deux entrées homonymes.
+              const displayName =
+                w.is_personal && !w.is_mine
+                  ? `Perso · @${w.owner_username ?? "?"}`
+                  : w.name
               return (
                 <li key={w.id}>
                   <button
@@ -114,14 +120,14 @@ export function WorkspaceSwitcher({ current, workspaces }: Props) {
                     )}
                   >
                     <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-forest text-cream text-xs font-bold">
-                      {w.name.charAt(0).toUpperCase()}
+                      {displayName.charAt(0).toUpperCase()}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-semibold">
-                        {w.name}
+                        {displayName}
                       </span>
                       <span className="block truncate text-[11px] text-muted-foreground">
-                        {w.is_personal ? "Personnel · " : ""}
+                        {w.is_personal && w.is_mine ? "Personnel · " : ""}
                         {roleLabel(w.role)}
                       </span>
                     </span>

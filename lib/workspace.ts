@@ -9,16 +9,20 @@ export type WorkspaceSummary = {
   name: string
   is_personal: boolean
   role: WorkspaceRole
+  /** True si l'utilisateur courant a créé ce workspace. Permet de
+   *  distinguer SON Personnel des Personnels d'autres users dans
+   *  l'UI (préfixe @username, etc). */
+  is_mine: boolean
+  /** Username du créateur (pour les workspaces des autres). Null si is_mine. */
+  owner_username: string | null
 }
 
 /**
  * Liste tous les workspaces dont l'utilisateur courant est membre,
- * avec son rôle. Utilisé par le switcher du layout dashboard.
- *
- * Règle : on EXCLUT les workspaces is_personal=true qui ne sont pas
- * créés par l'utilisateur courant. Sinon, si quelqu'un avait par
- * erreur invité dans son Personnel, on se retrouvait avec deux entrées
- * « Personnel » indistinctes dans le switcher.
+ * enrichis du flag `is_mine` (créé par moi) et du `owner_username`
+ * pour les workspaces des autres. C'est l'UI qui décide ensuite
+ * comment afficher (ex. switcher préfixe les Personnels des autres
+ * avec `Perso · @username`).
  */
 export async function listMyWorkspaces(
   userId: string
@@ -39,30 +43,47 @@ export async function listMyWorkspaces(
     .select("id, name, is_personal, created_by")
     .in("id", ids)
 
+  const wsList = workspaces ?? []
   const wsById = new Map<
     string,
-    {
-      id: string
-      name: string
-      is_personal: boolean
-      created_by: string
-    }
+    { id: string; name: string; is_personal: boolean; created_by: string }
   >()
-  for (const w of workspaces ?? []) {
+  for (const w of wsList) {
     wsById.set(w.id, w)
+  }
+
+  // Récupère le username de chaque créateur (pour préfixer les workspaces
+  // des autres). On ne fait la query que pour les créateurs ≠ moi.
+  const otherCreatorIds = Array.from(
+    new Set(
+      wsList
+        .map((w) => w.created_by)
+        .filter((id) => id !== userId)
+    )
+  )
+  const usernameByUserId = new Map<string, string>()
+  if (otherCreatorIds.length > 0) {
+    const { data: accounts } = await supabase
+      .from("accounts")
+      .select("id, username")
+      .in("id", otherCreatorIds)
+    for (const a of accounts ?? []) {
+      usernameByUserId.set(a.id, a.username)
+    }
   }
 
   return memberships
     .map((m) => {
       const ws = wsById.get(m.workspace_id)
       if (!ws) return null
-      // Exclure les Personnels qui ne sont PAS les nôtres
-      if (ws.is_personal && ws.created_by !== userId) return null
+      const isMine = ws.created_by === userId
       return {
         id: ws.id,
         name: ws.name,
         is_personal: ws.is_personal,
-        role: m.role
+        role: m.role,
+        is_mine: isMine,
+        owner_username: isMine ? null : (usernameByUserId.get(ws.created_by) ?? null)
       }
     })
     .filter((w): w is WorkspaceSummary => w !== null)
@@ -70,14 +91,8 @@ export async function listMyWorkspaces(
 
 /**
  * Récupère le workspace "actif" :
- *   1. Si cookie pointe sur un workspace toujours valide ET visible (cf.
- *      filtre listMyWorkspaces) → retourne le cookie.
- *   2. Sinon → fallback sur le workspace personnel de l'utilisateur.
- *
- * Les workspaces "Personnel" d'autres utilisateurs sont donc ignorés
- * même si l'utilisateur est techniquement membre — ce qui évite de se
- * retrouver bloqué sur un workspace vide qu'on ne savait pas qu'on
- * avait rejoint.
+ *   1. Si cookie pointe sur un workspace dont l'utilisateur est membre → retourne le cookie.
+ *   2. Sinon → fallback sur le workspace personnel de l'utilisateur (créé par lui).
  */
 export async function getCurrentWorkspaceId(
   userId: string
@@ -88,36 +103,26 @@ export async function getCurrentWorkspaceId(
   const supabase = await createClient()
 
   if (cookieValue) {
-    // Le workspace doit exister, l'utilisateur doit être membre, ET le
-    // workspace ne doit pas être un Personnel d'autrui.
-    const { data: ws } = await supabase
-      .from("workspaces")
-      .select("id, is_personal, created_by")
-      .eq("id", cookieValue)
+    const { data: m } = await supabase
+      .from("workspace_members")
+      .select("workspace_id")
+      .eq("user_id", userId)
+      .eq("workspace_id", cookieValue)
       .maybeSingle()
-
-    if (ws) {
-      const isOtherPersonal = ws.is_personal && ws.created_by !== userId
-      if (!isOtherPersonal) {
-        const { data: m } = await supabase
-          .from("workspace_members")
-          .select("workspace_id")
-          .eq("user_id", userId)
-          .eq("workspace_id", cookieValue)
-          .maybeSingle()
-        if (m) return cookieValue
-      }
-    }
+    if (m) return cookieValue
   }
 
-  // Fallback : workspace personnel de l'utilisateur
-  const { data: personal } = await supabase
+  // Fallback : workspace personnel créé par l'utilisateur.
+  // .limit(1) au lieu de .maybeSingle() au cas où l'user a plusieurs
+  // workspaces personnels (cas de signup buggé ancien).
+  const { data: personalList } = await supabase
     .from("workspaces")
     .select("id")
     .eq("created_by", userId)
     .eq("is_personal", true)
-    .maybeSingle()
-  return personal?.id ?? null
+    .order("created_at", { ascending: true })
+    .limit(1)
+  return personalList?.[0]?.id ?? null
 }
 
 /**
