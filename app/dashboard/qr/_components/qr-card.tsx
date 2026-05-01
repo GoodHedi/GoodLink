@@ -6,16 +6,25 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { QrPreview } from "./qr-preview"
 import { qrEncodedUrl } from "@/lib/qr-url"
+import { ShareModal } from "../../_components/share-modal"
+import { shareQrAction } from "../../shared/actions"
 import type { QrCode } from "@/types/database"
 
 type Props = {
   qr: QrCode
   scanCount?: number
+  canShare?: boolean
   onEdit: () => void
   onDelete: () => void
 }
 
-export function QrCard({ qr, scanCount = 0, onEdit, onDelete }: Props) {
+export function QrCard({
+  qr,
+  scanCount = 0,
+  canShare = false,
+  onEdit,
+  onDelete
+}: Props) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const encoded = qrEncodedUrl(qr)
@@ -61,6 +70,14 @@ export function QrCard({ qr, scanCount = 0, onEdit, onDelete }: Props) {
           <Pencil className="h-3.5 w-3.5" />
           Modifier
         </Button>
+        {canShare && (
+          <ShareModal
+            target="qr"
+            onSubmit={async (username, role) =>
+              shareQrAction(qr.id, { username, role })
+            }
+          />
+        )}
         <Button
           type="button"
           size="icon"

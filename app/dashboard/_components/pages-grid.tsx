@@ -28,13 +28,15 @@ type Props = {
   pages: Page[]
   viewCounts?: Record<string, number>
   moveTargets?: MoveTarget[]
+  canShare?: boolean
 }
 
 export function PagesGrid({
   workspaceId,
   pages: initialPages,
   viewCounts = {},
-  moveTargets = []
+  moveTargets = [],
+  canShare = false
 }: Props) {
   const router = useRouter()
   const [pages, setPages] = useState<Page[]>(initialPages)
@@ -137,6 +139,7 @@ export function PagesGrid({
             onMove={(targetId) => handleMove(page.id, targetId)}
             moveTargets={moveTargets}
             atLimit={atLimit}
+            canShare={canShare}
           />
         ))}
 

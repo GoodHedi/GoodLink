@@ -8,6 +8,11 @@ const TABS = [
   { href: "/dashboard", label: "Pages", matches: ["/dashboard"] },
   { href: "/dashboard/qr", label: "QR codes", matches: ["/dashboard/qr"] },
   {
+    href: "/dashboard/shared",
+    label: "Partages",
+    matches: ["/dashboard/shared"]
+  },
+  {
     href: "/dashboard/stats",
     label: "Stats",
     matches: ["/dashboard/stats"]

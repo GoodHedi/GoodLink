@@ -17,6 +17,8 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { togglePagePublishedAction } from "../actions"
+import { sharePageAction } from "../shared/actions"
+import { ShareModal } from "./share-modal"
 import type { Page } from "@/types/database"
 import type { MoveTarget } from "./pages-grid"
 
@@ -24,6 +26,7 @@ type Props = {
   page: Page
   viewCount?: number
   atLimit?: boolean
+  canShare?: boolean
   onDelete: () => void
   onDuplicate: () => void
   onMove?: (targetWorkspaceId: string) => void
@@ -34,6 +37,7 @@ export function PageCard({
   page,
   viewCount = 0,
   atLimit = false,
+  canShare = false,
   onDelete,
   onDuplicate,
   onMove,
@@ -152,6 +156,14 @@ export function PageCard({
               Modifier
             </Link>
           </Button>
+          {canShare && (
+            <ShareModal
+              target="page"
+              onSubmit={async (username, role) =>
+                sharePageAction(page.id, { username, role })
+              }
+            />
+          )}
           <Button
             asChild
             size="icon"

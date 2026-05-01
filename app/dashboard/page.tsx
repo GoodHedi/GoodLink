@@ -2,8 +2,9 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { PagesGrid } from "./_components/pages-grid"
-import { PAGE_LIMIT_FREE } from "@/lib/constants"
+import { PAGE_LIMIT_FREE, TIER_CAPS } from "@/lib/constants"
 import { getCurrentWorkspaceId, listMyWorkspaces } from "@/lib/workspace"
+import { getMyTier } from "@/lib/tier"
 
 export const metadata: Metadata = { title: "Mes pages" }
 export const dynamic = "force-dynamic"
@@ -74,6 +75,7 @@ export default async function DashboardPage() {
         pages={list}
         viewCounts={viewCounts}
         moveTargets={moveTargets}
+        canShare={(await getMyTier())?.caps.sharing ?? TIER_CAPS.visiteur.sharing}
       />
     </div>
   )

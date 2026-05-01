@@ -1,8 +1,9 @@
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { QR_LIMIT_FREE } from "@/lib/constants"
+import { QR_LIMIT_FREE, TIER_CAPS } from "@/lib/constants"
 import { getCurrentWorkspaceId } from "@/lib/workspace"
+import { getMyTier } from "@/lib/tier"
 import { QrList } from "./_components/qr-list"
 
 export const metadata: Metadata = { title: "QR codes" }
@@ -64,6 +65,7 @@ export default async function QrPage() {
         ownerId={user.id}
         initialQrs={list}
         scanCounts={scanCounts}
+        canShare={(await getMyTier())?.caps.sharing ?? TIER_CAPS.visiteur.sharing}
       />
     </div>
   )
