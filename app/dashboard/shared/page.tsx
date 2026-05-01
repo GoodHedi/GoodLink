@@ -1,9 +1,10 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { ExternalLink, ScanLine, Share2, Users } from "lucide-react"
+import { ExternalLink, Share2, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/server"
+import { QrPreview } from "@/app/dashboard/qr/_components/qr-preview"
 import { qrEncodedUrl } from "@/lib/qr-url"
 
 export const metadata: Metadata = { title: "Partages" }
@@ -29,7 +30,7 @@ export default async function SharedPage() {
   const { data: qrShares } = await supabase
     .from("qr_shares")
     .select(
-      "qr_id, role, created_at, shared_by_user_id, qr_codes!inner (id, label, target_url, fg_color, bg_color, tracked)"
+      "qr_id, role, created_at, shared_by_user_id, qr_codes!inner (id, label, target_url, fg_color, bg_color, logo_url, tracked)"
     )
     .eq("shared_with_user_id", user.id)
     .order("created_at", { ascending: false })
@@ -59,6 +60,7 @@ export default async function SharedPage() {
       target_url: string
       fg_color: string
       bg_color: string
+      logo_url: string | null
       tracked: boolean
     }
   }
@@ -192,27 +194,36 @@ export default async function SharedPage() {
                 {sharedQrs.map((s) => (
                   <article
                     key={s.qr_id}
-                    className="space-y-3 rounded-2xl border border-border bg-card p-4 shadow-soft"
+                    className="space-y-3 rounded-2xl border border-border bg-card p-4 shadow-soft transition-shadow hover:shadow-lift"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
-                        <ScanLine className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
+                    <div className="flex justify-center pt-2">
+                      <QrPreview
+                        data={qrEncodedUrl(s.qr_codes)}
+                        fgColor={s.qr_codes.fg_color}
+                        bgColor={s.qr_codes.bg_color}
+                        logoUrl={s.qr_codes.logo_url}
+                        label={s.qr_codes.label}
+                        size={180}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-start justify-between gap-2">
                         <h3 className="truncate font-bold text-forest">
                           {s.qr_codes.label}
                         </h3>
-                        <p
-                          className="truncate text-xs text-muted-foreground"
-                          title={s.qr_codes.target_url}
-                        >
-                          {s.qr_codes.target_url}
-                        </p>
+                        <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent">
+                          {s.role === "editor" ? "Éditeur" : "Lecteur"}
+                        </span>
                       </div>
-                      <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent">
-                        {s.role === "editor" ? "Éditeur" : "Lecteur"}
-                      </span>
+                      <p
+                        className="truncate text-xs text-muted-foreground"
+                        title={s.qr_codes.target_url}
+                      >
+                        {s.qr_codes.target_url}
+                      </p>
                     </div>
+
                     <Button
                       asChild
                       size="sm"
