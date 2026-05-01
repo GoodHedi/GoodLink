@@ -3,8 +3,9 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import type { AccountTier } from "@/types/database"
 
-const TABS = [
+const BASE_TABS = [
   { href: "/dashboard", label: "Pages", matches: ["/dashboard"] },
   { href: "/dashboard/qr", label: "QR codes", matches: ["/dashboard/qr"] },
   {
@@ -24,8 +25,22 @@ const TABS = [
   }
 ]
 
-export function DashboardNav() {
+const AGENCY_TAB = {
+  href: "/dashboard/agency",
+  label: "Agence",
+  matches: ["/dashboard/agency"]
+}
+
+type Props = { tier: AccountTier }
+
+export function DashboardNav({ tier }: Props) {
   const pathname = usePathname() || ""
+
+  // Insert "Agence" entre Partages et Stats si l'utilisateur est agence.
+  const TABS =
+    tier === "agence"
+      ? [...BASE_TABS.slice(0, 3), AGENCY_TAB, ...BASE_TABS.slice(3)]
+      : BASE_TABS
 
   return (
     <nav className="flex items-center gap-1">

@@ -5,6 +5,7 @@ import { DashboardNav } from "./_components/dashboard-nav"
 import { UserMenu } from "./_components/user-menu"
 import { WorkspaceSwitcher } from "./_components/workspace-switcher"
 import { getCurrentWorkspaceId, listMyWorkspaces } from "@/lib/workspace"
+import { getMyTier } from "@/lib/tier"
 
 export default async function DashboardLayout({
   children
@@ -26,6 +27,7 @@ export default async function DashboardLayout({
   const workspaces = await listMyWorkspaces(user.id)
   const currentId = await getCurrentWorkspaceId(user.id)
   const current = workspaces.find((w) => w.id === currentId) ?? null
+  const tier = (await getMyTier())?.tier ?? "visiteur"
 
   return (
     <div className="min-h-svh bg-cream/50">
@@ -45,7 +47,7 @@ export default async function DashboardLayout({
             <WorkspaceSwitcher current={current} workspaces={workspaces} />
           </div>
 
-          <DashboardNav />
+          <DashboardNav tier={tier} />
 
           <UserMenu
             username={account?.username ?? null}
