@@ -414,6 +414,9 @@ export default function HomePage() {
               <a href="#qr" className="hover:text-cream">
                 QR codes
               </a>
+              <Link href="/pricing" className="hover:text-cream">
+                Tarifs
+              </Link>
               <Link href="/login" className="hover:text-cream">
                 Connexion
               </Link>

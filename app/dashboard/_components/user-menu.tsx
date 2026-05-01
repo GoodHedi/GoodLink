@@ -1,15 +1,19 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { LogOut, User as UserIcon } from "lucide-react"
+import Link from "next/link"
+import { CreditCard, LogOut, User as UserIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { tierLabel } from "@/lib/constants"
+import type { AccountTier } from "@/types/database"
 
 type Props = {
   username: string | null
   email: string
+  tier?: AccountTier
 }
 
-export function UserMenu({ username, email }: Props) {
+export function UserMenu({ username, email, tier }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -65,11 +69,26 @@ export function UserMenu({ username, email }: Props) {
                 <p className="truncate text-xs text-muted-foreground">
                   {email}
                 </p>
+                {tier && (
+                  <span className="mt-1 inline-flex items-center rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent">
+                    {tierLabel(tier)}
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
           <div className="p-1">
+            <Link
+              href="/dashboard/billing"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted"
+            >
+              <CreditCard className="h-4 w-4" />
+              Abonnement
+            </Link>
+
             <button
               type="button"
               role="menuitem"

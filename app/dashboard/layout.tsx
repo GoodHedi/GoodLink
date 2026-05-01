@@ -52,6 +52,7 @@ export default async function DashboardLayout({
           <UserMenu
             username={account?.username ?? null}
             email={user.email ?? ""}
+            tier={tier}
           />
         </div>
       </header>
