@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { BackgroundUpload } from "./background-upload"
 import { AudioUpload } from "./audio-upload"
+import type { TierCapabilities } from "@/lib/constants"
 import type { Page } from "@/types/database"
 
 type Props = {
@@ -19,6 +20,7 @@ type Props = {
   onBackgroundChange: (url: string | null) => Promise<void>
   onBackgroundDesktopChange: (url: string | null) => Promise<void>
   onAudioChange: (url: string | null) => Promise<void>
+  caps: TierCapabilities
 }
 
 const SUGGESTED_COLORS = [
@@ -37,7 +39,8 @@ export function AppearanceSection({
   onChange,
   onBackgroundChange,
   onBackgroundDesktopChange,
-  onAudioChange
+  onAudioChange,
+  caps
 }: Props) {
   const hasBackground = Boolean(page.background_url)
 
@@ -57,29 +60,35 @@ export function AppearanceSection({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <BackgroundUpload
-          pageId={page.id}
-          backgroundUrl={page.background_url}
-          kind="mobile"
-          label="Fond mobile"
-          hint="Visible sur tous les écrans, dans la carte centrale."
-          onChange={onBackgroundChange}
-        />
+        {caps.backgroundImage && (
+          <>
+            <BackgroundUpload
+              pageId={page.id}
+              backgroundUrl={page.background_url}
+              kind="mobile"
+              label="Fond mobile"
+              hint="Visible sur tous les écrans, dans la carte centrale."
+              onChange={onBackgroundChange}
+            />
 
-        <BackgroundUpload
-          pageId={page.id}
-          backgroundUrl={page.background_desktop_url}
-          kind="desktop"
-          label="Fond desktop (optionnel)"
-          hint="Visible uniquement sur grand écran, autour de la carte."
-          onChange={onBackgroundDesktopChange}
-        />
+            <BackgroundUpload
+              pageId={page.id}
+              backgroundUrl={page.background_desktop_url}
+              kind="desktop"
+              label="Fond desktop (optionnel)"
+              hint="Visible uniquement sur grand écran, autour de la carte."
+              onChange={onBackgroundDesktopChange}
+            />
+          </>
+        )}
 
-        <AudioUpload
-          pageId={page.id}
-          audioUrl={page.audio_url}
-          onChange={onAudioChange}
-        />
+        {caps.audioAttachment && (
+          <AudioUpload
+            pageId={page.id}
+            audioUrl={page.audio_url}
+            onChange={onAudioChange}
+          />
+        )}
 
         {!hasBackground && (
           <div className="space-y-2 animate-fade-in">

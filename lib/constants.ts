@@ -46,9 +46,111 @@ export const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{6})$/
 export const DEFAULT_BACKGROUND_COLOR = "#F3EFE9"
 export const DEFAULT_BACKGROUND_OVERLAY = 0.3
 
-// Quotas plan free (à passer en colonne `plan` sur auth.users plus tard si besoin)
-export const PAGE_LIMIT_FREE = 20
-export const QR_LIMIT_FREE = 50
+// Quotas par tier. Visiteur = freemium, Pro = payant grand-public, Agence
+// = payant pro avec codes pour ses clients (tier 'agence_client' = sub-pro
+// hérité d'une agence, avec mêmes droits que Pro tant que le code est actif).
+import type { AccountTier } from "@/types/database"
+
+export const PAGE_LIMIT_BY_TIER: Record<AccountTier, number> = {
+  visiteur: 1,
+  pro: 20,
+  agence: 100,
+  agence_client: 20
+}
+
+export const QR_LIMIT_BY_TIER: Record<AccountTier, number> = {
+  visiteur: 1,
+  pro: 50,
+  agence: 200,
+  agence_client: 50
+}
+
+// Compat : valeurs par défaut historiques utilisées avant l'introduction
+// des tiers (encore référencées dans certains composants UI).
+export const PAGE_LIMIT_FREE = PAGE_LIMIT_BY_TIER.pro
+export const QR_LIMIT_FREE = QR_LIMIT_BY_TIER.pro
+
+/**
+ * Capacités par tier. Sert à gater l'UI ET les server actions de manière
+ * cohérente. `true` = autorisé, `false` = caché/refusé.
+ *
+ * Visiteur : version ultra-basique, 1 page avec liens et fond uni seulement.
+ * Pas d'avatar custom, pas de fond image, pas d'audio, pas de templates,
+ * pas de polices custom, pas de QR personnalisable au-delà du basique.
+ */
+export type TierCapabilities = {
+  customAvatar: boolean
+  backgroundImage: boolean
+  audioAttachment: boolean
+  customLinkColor: boolean
+  customLinkShape: boolean
+  customFont: boolean
+  templates: boolean
+  workspaces: boolean
+  sharing: boolean
+  agencyCodes: boolean
+}
+
+export const TIER_CAPS: Record<AccountTier, TierCapabilities> = {
+  visiteur: {
+    customAvatar: false,
+    backgroundImage: false,
+    audioAttachment: false,
+    customLinkColor: false,
+    customLinkShape: false,
+    customFont: false,
+    templates: false,
+    workspaces: false,
+    sharing: false,
+    agencyCodes: false
+  },
+  pro: {
+    customAvatar: true,
+    backgroundImage: true,
+    audioAttachment: true,
+    customLinkColor: true,
+    customLinkShape: true,
+    customFont: true,
+    templates: true,
+    workspaces: true,
+    sharing: true,
+    agencyCodes: false
+  },
+  agence: {
+    customAvatar: true,
+    backgroundImage: true,
+    audioAttachment: true,
+    customLinkColor: true,
+    customLinkShape: true,
+    customFont: true,
+    templates: true,
+    workspaces: true,
+    sharing: true,
+    agencyCodes: true
+  },
+  agence_client: {
+    customAvatar: true,
+    backgroundImage: true,
+    audioAttachment: true,
+    customLinkColor: true,
+    customLinkShape: true,
+    customFont: true,
+    templates: true,
+    workspaces: true,
+    sharing: true,
+    agencyCodes: false
+  }
+}
+
+export function tierLabel(tier: AccountTier): string {
+  return tier === "visiteur"
+    ? "Visiteur"
+    : tier === "pro"
+      ? "Pro"
+      : tier === "agence"
+        ? "Agence"
+        : "Client agence"
+}
 
 // Plateformes sociales supportées (pour LinkType = 'social', vague 2)
 export const SOCIAL_PLATFORMS = [

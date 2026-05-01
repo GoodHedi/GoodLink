@@ -17,6 +17,8 @@ export type LinkType = "link" | "header" | "social"
 export type LinkShape = "pill" | "rounded" | "square"
 export type FontFamily = "sans" | "serif" | "mono" | "display"
 export type WorkspaceRole = "owner" | "editor" | "viewer"
+export type AccountTier = "visiteur" | "pro" | "agence" | "agence_client"
+export type ShareRole = "viewer" | "editor"
 
 export type Database = {
   __InternalSupabase: {
@@ -29,17 +31,29 @@ export type Database = {
           id: string
           username: string
           age: number | null
+          tier: AccountTier
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier_expires_at: string | null
           created_at: string
         }
         Insert: {
           id: string
           username: string
           age?: number | null
+          tier?: AccountTier
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier_expires_at?: string | null
           created_at?: string
         }
         Update: {
           username?: string
           age?: number | null
+          tier?: AccountTier
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier_expires_at?: string | null
         }
         Relationships: [
           {
@@ -339,12 +353,95 @@ export type Database = {
           }
         ]
       }
+      agency_codes: {
+        Row: {
+          id: string
+          agency_account_id: string
+          code: string
+          label: string
+          created_at: string
+          revoked_at: string | null
+        }
+        Insert: {
+          id?: string
+          agency_account_id: string
+          code: string
+          label?: string
+          created_at?: string
+          revoked_at?: string | null
+        }
+        Update: {
+          label?: string
+          revoked_at?: string | null
+        }
+        Relationships: []
+      }
+      agency_clients: {
+        Row: {
+          agency_account_id: string
+          client_account_id: string
+          code_id: string
+          joined_at: string
+        }
+        Insert: {
+          agency_account_id: string
+          client_account_id: string
+          code_id: string
+          joined_at?: string
+        }
+        Update: { joined_at?: string }
+        Relationships: []
+      }
+      page_shares: {
+        Row: {
+          page_id: string
+          shared_with_user_id: string
+          shared_by_user_id: string
+          role: ShareRole
+          created_at: string
+        }
+        Insert: {
+          page_id: string
+          shared_with_user_id: string
+          shared_by_user_id: string
+          role?: ShareRole
+          created_at?: string
+        }
+        Update: { role?: ShareRole }
+        Relationships: []
+      }
+      qr_shares: {
+        Row: {
+          qr_id: string
+          shared_with_user_id: string
+          shared_by_user_id: string
+          role: ShareRole
+          created_at: string
+        }
+        Insert: {
+          qr_id: string
+          shared_with_user_id: string
+          shared_by_user_id: string
+          role?: ShareRole
+          created_at?: string
+        }
+        Update: { role?: ShareRole }
+        Relationships: []
+      }
     }
     Views: { [key: string]: never }
     Functions: {
       accept_workspace_invite: {
         Args: { p_token: string }
         Returns: string
+      }
+      activate_agency_code: {
+        Args: { p_code: string }
+        Returns: string
+      }
+      revoke_agency_code: {
+        Args: { p_code_id: string }
+        Returns: number
       }
     }
     Enums: { [key: string]: never }
@@ -368,3 +465,7 @@ export type QrCode = Database["public"]["Tables"]["qr_codes"]["Row"]
 export type QrCodeInsert = Database["public"]["Tables"]["qr_codes"]["Insert"]
 export type QrCodeUpdate = Database["public"]["Tables"]["qr_codes"]["Update"]
 export type QrScan = Database["public"]["Tables"]["qr_scans"]["Row"]
+export type AgencyCode = Database["public"]["Tables"]["agency_codes"]["Row"]
+export type AgencyClient = Database["public"]["Tables"]["agency_clients"]["Row"]
+export type PageShare = Database["public"]["Tables"]["page_shares"]["Row"]
+export type QrShare = Database["public"]["Tables"]["qr_shares"]["Row"]

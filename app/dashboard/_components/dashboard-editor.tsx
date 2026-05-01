@@ -25,6 +25,7 @@ import { LinksSection } from "./links-section"
 import { LivePreview } from "./live-preview"
 import { AnalyticsCard } from "./analytics-card"
 import type { Link as LinkRow, Page } from "@/types/database"
+import type { TierCapabilities } from "@/lib/constants"
 
 export type PageStats = {
   totalViews: number
@@ -36,6 +37,7 @@ type Props = {
   page: Page
   links: LinkRow[]
   stats: PageStats
+  caps: TierCapabilities
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error"
@@ -43,7 +45,8 @@ type SaveStatus = "idle" | "saving" | "saved" | "error"
 export function DashboardEditor({
   page: initialPage,
   links: initialLinks,
-  stats
+  stats,
+  caps
 }: Props) {
   const [page, setPage] = useState<Page>(initialPage)
   const [links, setLinks] = useState<LinkRow[]>(initialLinks)
@@ -194,6 +197,7 @@ export function DashboardEditor({
             page={page}
             onChange={updatePageLocal}
             onAvatarChange={handleAvatarChange}
+            caps={caps}
           />
           <AppearanceSection
             page={page}
@@ -201,8 +205,14 @@ export function DashboardEditor({
             onBackgroundChange={handleBackgroundChange}
             onBackgroundDesktopChange={handleBackgroundDesktopChange}
             onAudioChange={handleAudioChange}
+            caps={caps}
           />
-          <StyleSection page={page} onChange={updatePageLocal} />
+          {(caps.customLinkColor ||
+            caps.customLinkShape ||
+            caps.customFont ||
+            caps.templates) && (
+            <StyleSection page={page} onChange={updatePageLocal} caps={caps} />
+          )}
           <LinksSection
             pageId={page.id}
             links={links}

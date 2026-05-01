@@ -11,16 +11,22 @@ import { FormField } from "@/components/ui/form-field"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { AvatarUpload } from "./avatar-upload"
-import { BIO_MAX, DISPLAY_NAME_MAX } from "@/lib/constants"
+import { BIO_MAX, DISPLAY_NAME_MAX, type TierCapabilities } from "@/lib/constants"
 import type { Page } from "@/types/database"
 
 type Props = {
   page: Page
   onChange: (patch: Partial<Page>) => void
   onAvatarChange: (url: string | null) => Promise<void>
+  caps: TierCapabilities
 }
 
-export function ProfileSection({ page, onChange, onAvatarChange }: Props) {
+export function ProfileSection({
+  page,
+  onChange,
+  onAvatarChange,
+  caps
+}: Props) {
   const bioLength = (page.bio ?? "").length
 
   return (
@@ -32,13 +38,15 @@ export function ProfileSection({ page, onChange, onAvatarChange }: Props) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        <AvatarUpload
-          pageId={page.id}
-          avatarUrl={page.avatar_url}
-          displayName={page.display_name}
-          username={page.username}
-          onChange={onAvatarChange}
-        />
+        {caps.customAvatar && (
+          <AvatarUpload
+            pageId={page.id}
+            avatarUrl={page.avatar_url}
+            displayName={page.display_name}
+            username={page.username}
+            onChange={onAvatarChange}
+          />
+        )}
 
         <FormField
           label="Nom affiché"

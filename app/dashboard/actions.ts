@@ -18,7 +18,8 @@ import {
   type UpdateLinkInput
 } from "@/lib/validations/links"
 import { fieldErrors } from "@/lib/form"
-import { PAGE_LIMIT_FREE, RESERVED_USERNAMES } from "@/lib/constants"
+import { PAGE_LIMIT_BY_TIER, RESERVED_USERNAMES } from "@/lib/constants"
+import { getMyTier } from "@/lib/tier"
 import type { Link, Page, PageUpdate } from "@/types/database"
 
 // ---------- Envelope de retour standardisée ----------
@@ -137,16 +138,21 @@ export async function createPageAction(
     }
   }
 
-  // Quota : max PAGE_LIMIT_FREE pages PAR WORKSPACE
-  const { count } = await owner.supabase
+  // Quota : max PAGE_LIMIT_BY_TIER[tier] pages — basé sur le tier du
+  // créateur, pas sur le workspace. Un Visiteur ne peut donc créer
+  // qu'1 page totale, peu importe le workspace.
+  const tierCtx = await getMyTier()
+  const limit = tierCtx?.pageLimit ?? PAGE_LIMIT_BY_TIER.visiteur
+
+  const { count: ownedCount } = await owner.supabase
     .from("pages")
     .select("id", { count: "exact", head: true })
-    .eq("workspace_id", workspaceId)
+    .eq("owner_id", owner.userId)
 
-  if ((count ?? 0) >= PAGE_LIMIT_FREE) {
+  if ((ownedCount ?? 0) >= limit) {
     return {
       ok: false,
-      error: `Limite de ${PAGE_LIMIT_FREE} pages atteinte sur ce workspace.`
+      error: `Limite de ${limit} pages atteinte sur ton tier.`
     }
   }
 
@@ -194,15 +200,17 @@ export async function duplicatePageAction(
     return { ok: false, error: "Page introuvable." }
   }
 
-  // Quota par workspace
-  const { count } = await owner.supabase
+  // Quota par tier (basé sur le créateur de la copie = utilisateur courant)
+  const tierCtx = await getMyTier()
+  const limit = tierCtx?.pageLimit ?? PAGE_LIMIT_BY_TIER.visiteur
+  const { count: ownedCount } = await owner.supabase
     .from("pages")
     .select("id", { count: "exact", head: true })
-    .eq("workspace_id", ownership.workspaceId)
-  if ((count ?? 0) >= PAGE_LIMIT_FREE) {
+    .eq("owner_id", owner.userId)
+  if ((ownedCount ?? 0) >= limit) {
     return {
       ok: false,
-      error: `Limite de ${PAGE_LIMIT_FREE} pages atteinte sur ce workspace.`
+      error: `Limite de ${limit} pages atteinte sur ton tier.`
     }
   }
 
@@ -327,15 +335,17 @@ export async function movePageToWorkspaceAction(
     }
   }
 
-  // Quota par workspace cible
+  // Sanity check workspace cible (limite généreuse — le quota strict
+  // s'applique au tier du créateur, pas au workspace).
   const { count } = await owner.supabase
     .from("pages")
     .select("id", { count: "exact", head: true })
     .eq("workspace_id", targetWorkspaceId)
-  if ((count ?? 0) >= PAGE_LIMIT_FREE) {
+  const SANITY_WORKSPACE_LIMIT = 100
+  if ((count ?? 0) >= SANITY_WORKSPACE_LIMIT) {
     return {
       ok: false,
-      error: `Limite de ${PAGE_LIMIT_FREE} pages atteinte sur le workspace cible.`
+      error: `Workspace cible saturé (${SANITY_WORKSPACE_LIMIT} pages max).`
     }
   }
 

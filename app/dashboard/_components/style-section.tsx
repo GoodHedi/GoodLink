@@ -15,14 +15,16 @@ import {
   TEMPLATES,
   type Template
 } from "@/lib/style-options"
+import type { TierCapabilities } from "@/lib/constants"
 import type { Page } from "@/types/database"
 
 type Props = {
   page: Page
   onChange: (patch: Partial<Page>) => void
+  caps: TierCapabilities
 }
 
-export function StyleSection({ page, onChange }: Props) {
+export function StyleSection({ page, onChange, caps }: Props) {
   function applyTemplate(t: Template) {
     onChange(t.style)
   }
@@ -43,6 +45,7 @@ export function StyleSection({ page, onChange }: Props) {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Templates */}
+        {caps.templates && (
         <div className="space-y-2">
           <Label>Templates</Label>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
@@ -84,8 +87,10 @@ export function StyleSection({ page, onChange }: Props) {
             ))}
           </div>
         </div>
+        )}
 
         {/* Couleur des liens */}
+        {caps.customLinkColor && (
         <div className="space-y-2">
           <Label htmlFor="link-color">Couleur des boutons</Label>
           <div className="flex items-center gap-3">
@@ -111,8 +116,10 @@ export function StyleSection({ page, onChange }: Props) {
             lisible.
           </p>
         </div>
+        )}
 
         {/* Forme des liens */}
+        {caps.customLinkShape && (
         <div className="space-y-2">
           <Label>Forme des boutons</Label>
           <div className="grid grid-cols-3 gap-2">
@@ -145,8 +152,10 @@ export function StyleSection({ page, onChange }: Props) {
             })}
           </div>
         </div>
+        )}
 
         {/* Police */}
+        {caps.customFont && (
         <div className="space-y-2">
           <Label>Police</Label>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -180,6 +189,7 @@ export function StyleSection({ page, onChange }: Props) {
             })}
           </div>
         </div>
+        )}
       </CardContent>
     </Card>
   )

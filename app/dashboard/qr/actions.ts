@@ -10,7 +10,8 @@ import {
   type UpdateQrInput
 } from "@/lib/validations/qr"
 import { fieldErrors } from "@/lib/form"
-import { QR_LIMIT_FREE } from "@/lib/constants"
+import { QR_LIMIT_BY_TIER } from "@/lib/constants"
+import { getMyTier } from "@/lib/tier"
 import type { QrCode } from "@/types/database"
 
 export type ActionResult<T = undefined> =
@@ -86,16 +87,19 @@ export async function createQrAction(
     }
   }
 
-  // Quota par workspace
-  const { count } = await owner.supabase
+  // Quota par tier (basé sur le créateur, pas sur le workspace)
+  const tierCtx = await getMyTier()
+  const limit = tierCtx?.qrLimit ?? QR_LIMIT_BY_TIER.visiteur
+
+  const { count: ownedCount } = await owner.supabase
     .from("qr_codes")
     .select("id", { count: "exact", head: true })
-    .eq("workspace_id", workspaceId)
+    .eq("owner_id", owner.userId)
 
-  if ((count ?? 0) >= QR_LIMIT_FREE) {
+  if ((ownedCount ?? 0) >= limit) {
     return {
       ok: false,
-      error: `Limite de ${QR_LIMIT_FREE} QR codes atteinte sur ce workspace.`
+      error: `Limite de ${limit} QR codes atteinte sur ton tier.`
     }
   }
 

@@ -4,6 +4,8 @@ import { notFound, redirect } from "next/navigation"
 import { ArrowLeft, ExternalLink } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
+import { getMyTier } from "@/lib/tier"
+import { TIER_CAPS } from "@/lib/constants"
 import { DashboardEditor } from "../../_components/dashboard-editor"
 
 export const metadata: Metadata = { title: "Éditeur" }
@@ -103,6 +105,7 @@ export default async function PageEditorRoute({
         page={page}
         links={linkRows}
         stats={{ totalViews, totalClicks, clicksByLinkId }}
+        caps={(await getMyTier())?.caps ?? TIER_CAPS.visiteur}
       />
     </>
   )
