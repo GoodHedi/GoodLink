@@ -31,16 +31,22 @@ const AGENCY_TAB = {
   matches: ["/dashboard/agency"]
 }
 
+const ACTIVATE_CODE_TAB = {
+  href: "/dashboard/activate-code",
+  label: "Code",
+  matches: ["/dashboard/activate-code"]
+}
+
 type Props = { tier: AccountTier }
 
 export function DashboardNav({ tier }: Props) {
   const pathname = usePathname() || ""
 
-  // Insert "Agence" entre Partages et Stats si l'utilisateur est agence.
-  const TABS =
-    tier === "agence"
-      ? [...BASE_TABS.slice(0, 3), AGENCY_TAB, ...BASE_TABS.slice(3)]
-      : BASE_TABS
+  // - tier 'agence'         → onglet "Agence" (gestion des codes)
+  // - tier visiteur/pro/etc → onglet "Code" (activation d'un code reçu)
+  // Inséré entre Partages et Stats dans tous les cas pour la cohérence.
+  const sideTab = tier === "agence" ? AGENCY_TAB : ACTIVATE_CODE_TAB
+  const TABS = [...BASE_TABS.slice(0, 3), sideTab, ...BASE_TABS.slice(3)]
 
   return (
     <nav className="flex items-center gap-1">
